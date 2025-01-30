@@ -1,35 +1,29 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import Editor from "@monaco-editor/react";
+import { useState } from "react";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [value, setValue] = useState("");
+
+  const handleEditorChange = (value) => {
+    setValue(value);
+  };
 
   return (
     <>
-      <div className='border-2 border-red-600'>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Editor
+        height="100vh"
+        width="100vw"
+        theme="vs-dark"
+        language="rust"
+        value={value}
+        onChange={handleEditorChange}
+        options={{
+          selectOnLineNumbers: true,
+          automaticLayout: true,
+        }}
+      />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
