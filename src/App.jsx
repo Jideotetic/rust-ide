@@ -1,7 +1,7 @@
 import Editor from "@monaco-editor/react";
 import { useState } from "react";
 
-function App() {
+export default function App() {
   const [value, setValue] = useState("");
 
   const handleEditorChange = (value) => {
@@ -25,5 +25,3 @@ function App() {
     </>
   );
 }
-
-export default App;
