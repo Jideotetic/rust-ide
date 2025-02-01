@@ -14,7 +14,7 @@
             ]
         },
         {
-            "source": "/assets/monaco-(.*).js",
+            "source": "/assets/ra-worker-(.*).js",
             "headers": [
                 {
                     "key": "Cross-Origin-Embedder-Policy",
@@ -23,7 +23,7 @@
             ]
         },
         {
-            "source": "/assets/ra-worker-(.*).js",
+            "source": "/assets/editor.worker-(.*).js",
             "headers": [
                 {
                     "key": "Cross-Origin-Embedder-Policy",
