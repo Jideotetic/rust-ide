@@ -1,0 +1,26 @@
+OPT_LEVEL = Some("3")
+TARGET = Some("wasm32-unknown-unknown")
+HOST = Some("x86_64-pc-windows-msvc")
+CC_wasm32-unknown-unknown = None
+CC_wasm32_unknown_unknown = None
+TARGET_CC = None
+CC = None
+CFLAGS_wasm32-unknown-unknown = None
+CFLAGS_wasm32_unknown_unknown = None
+TARGET_CFLAGS = None
+CFLAGS = None
+CRATE_CC_NO_DEFAULTS = None
+DEBUG = Some("false")
+cargo:rustc-cfg=asm
+cargo:rustc-cfg=switchable_stack
+AR_wasm32-unknown-unknown = None
+AR_wasm32_unknown_unknown = None
+TARGET_AR = None
+AR = None
+CROSS_COMPILE = None
+running: "ar" "cq" "C:\\Users\\JIDE\\Desktop\\repos\\rust-analyzer-wasm\\ra-wasm\\target\\wasm32-unknown-unknown\\release\\build\\psm-045d7f1e58c759dc\\out\\libpsm_s.a" "src/arch/wasm32.o"
+exit code: 0
+running: "ar" "s" "C:\\Users\\JIDE\\Desktop\\repos\\rust-analyzer-wasm\\ra-wasm\\target\\wasm32-unknown-unknown\\release\\build\\psm-045d7f1e58c759dc\\out\\libpsm_s.a"
+exit code: 0
+cargo:rustc-link-lib=static=psm_s
+cargo:rustc-link-search=native=C:\Users\JIDE\Desktop\repos\rust-analyzer-wasm\ra-wasm\target\wasm32-unknown-unknown\release\build\psm-045d7f1e58c759dc\out

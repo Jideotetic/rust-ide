@@ -1,0 +1,1 @@
+C:\Users\JIDE\Desktop\repos\rust-ide\rust-pack\target\debug\rust-pack.exe: C:\Users\JIDE\Desktop\repos\rust-ide\rust-pack\src\main.rs C:\Users\JIDE\Desktop\repos\rust-ide\rust-pack\src\remove_function.rs

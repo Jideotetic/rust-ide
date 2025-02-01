@@ -1,0 +1,11 @@
+C:\Users\JIDE\Desktop\repos\rust-analyzer-wasm\ra-wasm\target\wasm32-unknown-unknown\release\deps\ra_ap_profile-0776159136399634.rmeta: C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\lib.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\stop_watch.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\memory_usage.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\hprof.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\tree.rs
+
+C:\Users\JIDE\Desktop\repos\rust-analyzer-wasm\ra-wasm\target\wasm32-unknown-unknown\release\deps\libra_ap_profile-0776159136399634.rlib: C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\lib.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\stop_watch.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\memory_usage.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\hprof.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\tree.rs
+
+C:\Users\JIDE\Desktop\repos\rust-analyzer-wasm\ra-wasm\target\wasm32-unknown-unknown\release\deps\ra_ap_profile-0776159136399634.d: C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\lib.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\stop_watch.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\memory_usage.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\hprof.rs C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\tree.rs
+
+C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\lib.rs:
+C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\stop_watch.rs:
+C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\memory_usage.rs:
+C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\hprof.rs:
+C:\Users\JIDE\.cargo\registry\src\github.com-1ecc6299db9ec823\ra_ap_profile-0.0.81\src\tree.rs:
