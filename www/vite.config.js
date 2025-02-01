@@ -16,7 +16,7 @@ export default defineConfig({
         viteStaticCopy({
             targets: [
                 {
-                    src: "node_modules/monaco-editor/min/vs",
+                    src: "node_modules/monaco-editor/esm/vs",
                     dest: "assets/monaco-editor",
                 },
             ],
