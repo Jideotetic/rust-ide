@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const projectRoot = new URL(".", import.meta.url).pathname
     .split("/")
@@ -9,7 +10,18 @@ const projectRoot = new URL(".", import.meta.url).pathname
 
 // https://vite.dev/config/
 export default defineConfig({
-    plugins: [react(), tailwindcss()],
+    plugins: [
+        react(),
+        tailwindcss(),
+        viteStaticCopy({
+            targets: [
+                {
+                    src: "node_modules/monaco-editor/min/vs",
+                    dest: "assets/monaco-editor",
+                },
+            ],
+        }),
+    ],
     server: {
         fs: {
             allow: [projectRoot],
@@ -22,5 +34,17 @@ export default defineConfig({
             "Cross-Origin-Embedder-Policy": "require-corp",
             "Cross-Origin-Opener-Policy": "same-origin",
         },
+    },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    monaco: ["monaco-editor"],
+                },
+            },
+        },
+    },
+    worker: {
+        format: "es",
     },
 });

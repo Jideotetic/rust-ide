@@ -5,3 +5,5 @@
 .jekyll-cache
 .vscode
 *.log
+Dockerfile
+build.sh
