@@ -12,6 +12,33 @@
                     "value": "require-corp"
                 }
             ]
+        },
+        {
+            "source": "/assets/monaco-editor/(.*)",
+            "headers": [
+                {
+                    "key": "Cross-Origin-Embedder-Policy",
+                    "value": "require-corp"
+                }
+            ]
+        },
+        {
+            "source": "/ra-worker-(.*).js",
+            "headers": [
+                {
+                    "key": "Cross-Origin-Embedder-Policy",
+                    "value": "require-corp"
+                }
+            ]
+        },
+        {
+            "source": "/editor.worker-(.*).js",
+            "headers": [
+                {
+                    "key": "Cross-Origin-Embedder-Policy",
+                    "value": "require-corp"
+                }
+            ]
         }
     ]
 }
