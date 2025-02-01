@@ -14,7 +14,7 @@
             ]
         },
         {
-            "source": "/ra-worker-(.*).js",
+            "source": "/assets/ra-worker-*",
             "headers": [
                 {
                     "key": "Cross-Origin-Embedder-Policy",
@@ -23,7 +23,7 @@
             ]
         },
         {
-            "source": "/editor.worker-(.*).js",
+            "source": "/assets/editor.worker-*",
             "headers": [
                 {
                     "key": "Cross-Origin-Embedder-Policy",
