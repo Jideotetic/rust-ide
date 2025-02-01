@@ -6,6 +6,6 @@ $ cargo run
 $ cd ../ra-wasm
 $ wasm-pack build --target web --profiling
 $ cd ../www
-$ yarn
-$ yarn start
+$ npm install
+$ npm run dev
 ```
