@@ -9,7 +9,25 @@
                 },
                 {
                     "key": "Cross-Origin-Embedder-Policy",
-                    "value": "credentialless"
+                    "value": "require-corp"
+                }
+            ]
+        },
+        {
+            "source": "/assets/monaco-(.*).js",
+            "headers": [
+                {
+                    "key": "Cross-Origin-Embedder-Policy",
+                    "value": "require-corp"
+                }
+            ]
+        },
+        {
+            "source": "/assets/ra-worker-(.*).js",
+            "headers": [
+                {
+                    "key": "Cross-Origin-Embedder-Policy",
+                    "value": "require-corp"
                 }
             ]
         }
