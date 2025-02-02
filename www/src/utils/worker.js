@@ -378,6 +378,7 @@ export const start = async (monacoElement) => {
 
     async function update() {
         const res = await state.update(model.getValue());
+        console.log(model.getValue());
         monaco.editor.setModelMarkers(model, modeId, res.diagnostics);
         allTokens = res.highlights;
     }

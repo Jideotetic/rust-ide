@@ -22,5 +22,12 @@ export default function App() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [monacoElement.current]);
 
-    return <div className="w-screen h-screen" ref={monacoElement} />;
+    return (
+        <>
+            <button onClick={() => console.log(editor.getModel().getValue())}>
+                Run
+            </button>
+            <div className="w-screen h-screen" ref={monacoElement} />;
+        </>
+    );
 }
