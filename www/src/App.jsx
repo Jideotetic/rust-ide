@@ -4,7 +4,7 @@ import { start } from "./utils/worker";
 export default function App() {
     const [editor, setEditor] = useState(null);
     const monacoElement = useRef(null);
-    const [code, setCode] = useState(null);
+    // const [code, setCode] = useState(null);
 
     useEffect(() => {
         if (monacoElement) {
@@ -15,7 +15,7 @@ export default function App() {
                     console.log("start");
                 });
 
-                setCode(model.getValue());
+                console.log(model.getValue());
 
                 return myEditor;
             });
@@ -27,7 +27,7 @@ export default function App() {
 
     return (
         <>
-            <button onClick={() => console.log(code)}>Run</button>
+            {/* <button onClick={() => console.log(code)}>Run</button> */}
             <div className="w-screen h-screen" ref={monacoElement} />;
         </>
     );
