@@ -11,11 +11,9 @@ export default function App() {
             setEditor((editor) => {
                 if (editor) return editor;
 
-                const { myEditor, model } = start(monacoElement).then(() => {
+                const myEditor = start(monacoElement).then(() => {
                     console.log("start");
                 });
-
-                console.log(model.getValue());
 
                 return myEditor;
             });
