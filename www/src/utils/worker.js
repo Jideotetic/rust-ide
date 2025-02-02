@@ -416,5 +416,5 @@ export const start = async (monacoElement) => {
 
     window.onresize = () => myEditor.layout();
 
-    return myEditor;
+    return { myEditor, model };
 };

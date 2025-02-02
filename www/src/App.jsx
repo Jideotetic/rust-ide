@@ -4,18 +4,18 @@ import { start } from "./utils/worker";
 export default function App() {
     const [editor, setEditor] = useState(null);
     const monacoElement = useRef(null);
-    // const [code, setCode] = null;
+    const [code, setCode] = null;
 
     useEffect(() => {
         if (monacoElement) {
             setEditor((editor) => {
                 if (editor) return editor;
 
-                const myEditor = start(monacoElement).then(() => {
+                const { myEditor, model } = start(monacoElement).then(() => {
                     console.log("start");
                 });
 
-                // setCode(model.getValue());
+                setCode(model.getValue());
 
                 return myEditor;
             });
@@ -27,11 +27,7 @@ export default function App() {
 
     return (
         <>
-            <button
-                onClick={() => console.log(monacoElement.current.getValue())}
-            >
-                Run
-            </button>
+            <button onClick={() => console.log(code)}>Run</button>
             <div className="w-screen h-screen" ref={monacoElement} />;
         </>
     );
