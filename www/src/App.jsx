@@ -24,7 +24,11 @@ export default function App() {
 
     return (
         <>
-            <button onClick={() => console.log(editor.getModel().getValue())}>
+            <button
+                onClick={() =>
+                    console.log(monacoElement.current.getModel().getValue())
+                }
+            >
                 Run
             </button>
             <div className="w-screen h-screen" ref={monacoElement} />;
