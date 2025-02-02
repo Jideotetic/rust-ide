@@ -4,7 +4,7 @@ import { start } from "./utils/worker";
 export default function App() {
     const [editor, setEditor] = useState(null);
     const monacoElement = useRef(null);
-    const [code, setCode] = null;
+    const [code, setCode] = useState(null);
 
     useEffect(() => {
         if (monacoElement) {
