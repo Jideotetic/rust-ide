@@ -81,7 +81,8 @@ self.MonacoEnvironment = {
     },
 };
 
-export const modeId = "rust";
+const modeId = "rust";
+
 monaco.languages.register({
     id: modeId,
 });
@@ -404,10 +405,9 @@ export const start = async (monacoElement) => {
         await state.init(model.getValue(), fake_std, fake_core, fake_alloc);
         await update();
         model.onDidChangeContent(update);
-        console.log(state);
     };
 
-    initRA();
+    await initRA();
 
     const myEditor = monaco.editor.create(monacoElement.current, {
         theme: "vscode-dark-plus",

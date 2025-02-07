@@ -3,30 +3,47 @@ import { start } from "./utils/worker";
 
 export default function App() {
     const [editor, setEditor] = useState(null);
+    const [loading, setLoading] = useState(true);
     const monacoElement = useRef(null);
-    // const [code, setCode] = useState(null);
 
     useEffect(() => {
         if (monacoElement) {
             setEditor((editor) => {
                 if (editor) return editor;
 
-                const myEditor = start(monacoElement).then(() => {
-                    console.log("start");
-                });
+                start(monacoElement)
+                    .then((myEditor) => {
+                        setLoading(false);
+                        setEditor(myEditor);
+                    })
+                    .catch((error) => {
+                        console.error("Failed to initialize editor:", error);
+                        setLoading(false);
+                    });
 
-                return myEditor;
+                return editor;
             });
         }
 
-        return () => editor?.dispose();
+        return () => {
+            if (editor) {
+                editor.dispose();
+            }
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [monacoElement.current]);
 
     return (
         <>
-            {/* <button onClick={() => console.log(code)}>Run</button> */}
-            <div className="w-screen h-screen" ref={monacoElement} />;
+            {loading && (
+                <div className="w-screen h-screen flex items-center justify-center bg-black/85">
+                    <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin" />
+                </div>
+            )}
+
+            {!loading && (
+                <div className="w-screen h-screen" ref={monacoElement}></div>
+            )}
         </>
     );
 }
