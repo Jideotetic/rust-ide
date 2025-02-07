@@ -13,7 +13,6 @@ export default function App() {
 
                 start(monacoElement)
                     .then((myEditor) => {
-                        console.log("start");
                         setLoading(false);
                         setEditor(myEditor);
                     })
@@ -37,7 +36,7 @@ export default function App() {
     return (
         <>
             {loading && (
-                <div className="w-screen h-screen flex items-center justify-center bg-[#d4d4d4]">
+                <div className="w-screen h-screen flex items-center justify-center bg-black/85">
                     <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin" />
                 </div>
             )}
