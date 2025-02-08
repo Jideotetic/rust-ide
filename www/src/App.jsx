@@ -60,6 +60,7 @@ export default function App() {
                                     defaultSize={25}
                                     minSize={10}
                                     maxSize={50}
+                                    className="hidden sm:block"
                                 >
                                     <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
                                 </Panel>
@@ -72,6 +73,7 @@ export default function App() {
                             defaultSize={20}
                             minSize={10}
                             maxSize={50}
+                            className="hidden sm:block"
                         >
                             <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
                         </Panel>
