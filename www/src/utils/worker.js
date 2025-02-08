@@ -372,16 +372,15 @@ export const createRA = async () => {
     });
 };
 
-export const start = async (monacoElementRef) => {
+export const start = async (monacoElementRef, setEditorContent) => {
     console.log("Starting Monaco editor...");
     let model = monaco.editor.createModel(exampleCode, modeId);
     window.editor = monaco.editor;
-    monacoElementRef.current.editor = monaco.editor;
     state = null;
 
     async function update() {
         const res = await state.update(model.getValue());
-        console.log(model.getValue());
+        setEditorContent(model.getValue());
         monaco.editor.setModelMarkers(model, modeId, res.diagnostics);
         allTokens = res.highlights;
     }
@@ -417,7 +416,6 @@ export const start = async (monacoElementRef) => {
     });
 
     window.onresize = () => editor.layout();
-    monacoElementRef.current.onresize = () => editor.layout();
 
-    return { editor, value: model.getValue() };
+    return editor;
 };
