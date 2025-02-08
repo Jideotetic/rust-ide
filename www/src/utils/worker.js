@@ -65,6 +65,7 @@ import fake_alloc from "../../fake_alloc.rs?raw";
 
 self.MonacoEnvironment = {
     getWorker: (_, label) => {
+        console.log(`Initializing worker for language: ${label}`);
         if (label === "json") {
             return new jsonWorker();
         }
@@ -372,7 +373,7 @@ const createRA = async () => {
     });
 };
 
-export const start = async (monacoElement) => {
+export const start = async (monacoElementRef) => {
     let model = monaco.editor.createModel(exampleCode, modeId);
     window.editor = monaco.editor;
     state = null;
@@ -409,7 +410,7 @@ export const start = async (monacoElement) => {
 
     await initRA();
 
-    const myEditor = monaco.editor.create(monacoElement.current, {
+    const myEditor = monaco.editor.create(monacoElementRef.current, {
         theme: "vscode-dark-plus",
         model: model,
     });
