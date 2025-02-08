@@ -65,7 +65,6 @@ import fake_alloc from "../../fake_alloc.rs?raw";
 
 self.MonacoEnvironment = {
     getWorker: (_, label) => {
-        console.log(`Initializing worker for language: ${label}`);
         if (label === "json") {
             return new jsonWorker();
         }
@@ -82,7 +81,7 @@ self.MonacoEnvironment = {
     },
 };
 
-const modeId = "rust";
+export const modeId = "rust";
 
 monaco.languages.register({
     id: modeId,
@@ -100,7 +99,7 @@ let state;
 // eslint-disable-next-line no-unused-vars
 let allTokens;
 
-const registerRA = async () => {
+export const registerRA = async () => {
     monaco.languages.registerHoverProvider(modeId, {
         provideHover: (_, pos) => state.hover(pos.lineNumber, pos.column),
     });
@@ -322,7 +321,7 @@ const registerRA = async () => {
     // });
 };
 
-const createRA = async () => {
+export const createRA = async () => {
     const worker = new Worker(new URL("../../ra-worker.js", import.meta.url), {
         type: "module",
     });
@@ -374,6 +373,7 @@ const createRA = async () => {
 };
 
 export const start = async (monacoElementRef) => {
+    console.log("Starting Monaco editor...");
     let model = monaco.editor.createModel(exampleCode, modeId);
     window.editor = monaco.editor;
     state = null;
@@ -410,12 +410,12 @@ export const start = async (monacoElementRef) => {
 
     await initRA();
 
-    const myEditor = monaco.editor.create(monacoElementRef.current, {
+    const editor = monaco.editor.create(monacoElementRef.current, {
         theme: "vscode-dark-plus",
         model: model,
     });
 
-    window.onresize = () => myEditor.layout();
+    window.onresize = () => editor.layout();
 
-    return myEditor;
+    return editor;
 };

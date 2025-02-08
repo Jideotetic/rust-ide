@@ -9,20 +9,13 @@ export default function App() {
 
     useEffect(() => {
         if (monacoElementRef) {
-            setEditor((editor) => {
+            setEditor(async (editor) => {
                 if (editor) return editor;
 
-                start(monacoElementRef)
-                    .then((myEditor) => {
-                        setLoading(false);
-                        setEditor(myEditor);
-                    })
-                    .catch((error) => {
-                        console.error("Failed to initialize editor:", error);
-                        setLoading(false);
-                    });
+                const myEditor = await start(monacoElementRef);
+                setLoading(false);
 
-                return editor;
+                return myEditor;
             });
         }
 
@@ -41,7 +34,7 @@ export default function App() {
                     <PanelGroup direction="horizontal">
                         <Panel>
                             <div
-                                className="h-full w-full relative"
+                                className="h-full w-full relative border-2 border-red-500"
                                 ref={monacoElementRef}
                             >
                                 {loading ? (
@@ -83,60 +76,6 @@ export default function App() {
                     <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
                 </Panel>
             </PanelGroup>
-
-            {/* <div
-                className="w-screen h-screen text-white"
-                ref={monacoElementRef}
-            >
-                {loading && (
-                    <div className="w-screen h-screen flex items-center justify-center bg-black/85">
-                        <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin" />
-                    </div>
-                )}
-            </div> */}
-
-            {/* {!loading && (
-                <div className="w-screen h-screen text-white">
-                    <PanelGroup direction="vertical">
-                        <Panel>
-                            <PanelGroup direction="horizontal">
-                                <Panel>
-                                    <div
-                                        className="w-screen h-screen"
-                                        ref={monacoElementRef}
-                                    >
-                                        <button className="p-2 bg-green-700 text-white absolute rounded bottom-2 right-6 z-50 cursor-pointer">
-                                            Compile
-                                        </button>
-                                    </div>
-                                </Panel>
-                                <PanelResizeHandle className="w-1 bg-black" />
-                                <Panel
-                                    collapsedSize={0}
-                                    collapsible
-                                    defaultSize={25}
-                                    minSize={10}
-                                    maxSize={50}
-                                    className="hidden sm:block"
-                                >
-                                    <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
-                                </Panel>
-                            </PanelGroup>
-                        </Panel>
-                        <PanelResizeHandle className="h-1 bg-black" />
-                        <Panel
-                            collapsedSize={0}
-                            collapsible
-                            defaultSize={20}
-                            minSize={10}
-                            maxSize={50}
-                            className="hidden sm:block"
-                        >
-                            <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
-                        </Panel>
-                    </PanelGroup>
-                </div>
-            )} */}
         </>
     );
 }
