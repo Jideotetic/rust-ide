@@ -12,7 +12,7 @@ export default function App() {
             setEditor(async (editor) => {
                 if (editor) return editor;
 
-                const myEditor = await start(monacoElementRef);
+                const { myEditor } = await start(monacoElementRef);
                 setLoading(false);
 
                 return myEditor;
@@ -34,7 +34,7 @@ export default function App() {
                     <PanelGroup direction="horizontal">
                         <Panel>
                             <div
-                                className="h-full w-full relative border-2 border-red-500"
+                                className="h-full w-full relative"
                                 ref={monacoElementRef}
                             >
                                 {loading ? (
@@ -55,9 +55,9 @@ export default function App() {
                         <Panel
                             collapsedSize={0}
                             collapsible
-                            defaultSize={25}
-                            minSize={10}
-                            maxSize={50}
+                            defaultSize={0}
+                            minSize={0}
+                            maxSize={30}
                             className="hidden sm:block"
                         >
                             <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
@@ -68,9 +68,9 @@ export default function App() {
                 <Panel
                     collapsedSize={0}
                     collapsible
-                    defaultSize={20}
-                    minSize={10}
-                    maxSize={50}
+                    defaultSize={0}
+                    minSize={0}
+                    maxSize={30}
                     className="hidden sm:block"
                 >
                     <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>

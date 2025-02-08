@@ -376,6 +376,7 @@ export const start = async (monacoElementRef) => {
     console.log("Starting Monaco editor...");
     let model = monaco.editor.createModel(exampleCode, modeId);
     window.editor = monaco.editor;
+    monacoElementRef.current.editor = monaco.editor;
     state = null;
 
     async function update() {
@@ -416,6 +417,7 @@ export const start = async (monacoElementRef) => {
     });
 
     window.onresize = () => editor.layout();
+    monacoElementRef.current.onresize = () => editor.layout();
 
-    return editor;
+    return { editor, value: model.getValue() };
 };
