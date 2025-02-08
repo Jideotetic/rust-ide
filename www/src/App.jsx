@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { start } from "./utils/worker";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
 export default function App() {
     const [editor, setEditor] = useState(null);
@@ -42,7 +43,42 @@ export default function App() {
             )}
 
             {!loading && (
-                <div className="w-screen h-screen" ref={monacoElement}></div>
+                <div className="w-screen h-screen text-white">
+                    <PanelGroup direction="vertical">
+                        <Panel>
+                            <PanelGroup direction="horizontal">
+                                <Panel>
+                                    <div
+                                        className="w-screen h-screen"
+                                        ref={monacoElement}
+                                    />
+                                </Panel>
+                                <PanelResizeHandle className="w-1 bg-black" />
+                                <Panel
+                                    collapsedSize={0}
+                                    collapsible
+                                    defaultSize={25}
+                                    minSize={10}
+                                    maxSize={50}
+                                    className="hidden sm:block"
+                                >
+                                    <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
+                                </Panel>
+                            </PanelGroup>
+                        </Panel>
+                        <PanelResizeHandle className="h-1 bg-black" />
+                        <Panel
+                            collapsedSize={0}
+                            collapsible
+                            defaultSize={20}
+                            minSize={10}
+                            maxSize={50}
+                            className="hidden sm:block"
+                        >
+                            <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
+                        </Panel>
+                    </PanelGroup>
+                </div>
             )}
         </>
     );
