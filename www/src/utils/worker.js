@@ -65,7 +65,6 @@ import fake_alloc from "../../fake_alloc.rs?raw";
 
 self.MonacoEnvironment = {
     getWorker: (_, label) => {
-        console.log(`Initializing worker for language: ${label}`);
         if (label === "json") {
             return new jsonWorker();
         }
