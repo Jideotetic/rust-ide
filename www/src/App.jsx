@@ -5,6 +5,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 export default function App() {
     const [editor, setEditor] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [editorContent, setEditorContent] = useState(null);
     const monacoElementRef = useRef(null);
 
     useEffect(() => {
@@ -12,7 +13,10 @@ export default function App() {
             setEditor(async (editor) => {
                 if (editor) return editor;
 
-                const { myEditor } = await start(monacoElementRef);
+                const myEditor = await start(
+                    monacoElementRef,
+                    setEditorContent
+                );
                 setLoading(false);
 
                 return myEditor;
@@ -26,6 +30,10 @@ export default function App() {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [monacoElementRef.current]);
+
+    const handleCompile = () => {
+        console.log(editorContent);
+    };
 
     return (
         <>
@@ -44,6 +52,7 @@ export default function App() {
                                 ) : (
                                     <button
                                         disabled={loading}
+                                        onClick={handleCompile}
                                         className="p-2 bg-green-700 text-white absolute rounded bottom-2 right-4 z-50 cursor-pointer disabled:cursor-not-allowed disabled:bg-green-200"
                                     >
                                         Compile
@@ -57,8 +66,7 @@ export default function App() {
                             collapsible
                             defaultSize={0}
                             minSize={0}
-                            maxSize={30}
-                            className="hidden sm:block"
+                            maxSize={100}
                         >
                             <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
                         </Panel>
@@ -70,8 +78,7 @@ export default function App() {
                     collapsible
                     defaultSize={0}
                     minSize={0}
-                    maxSize={30}
-                    className="hidden sm:block"
+                    maxSize={100}
                 >
                     <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
                 </Panel>
