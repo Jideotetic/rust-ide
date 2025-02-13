@@ -43,10 +43,6 @@
 
     "builds": [
         {
-            "src": "www/package.json",
-            "use": "@vercel/node"
-        },
-        {
             "src": "rustfmt/pkg/rustfmt_wasm.js",
             "use": "@vercel/static"
         }
