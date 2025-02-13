@@ -39,12 +39,5 @@
                 }
             ]
         }
-    ],
-
-    "builds": [
-        {
-            "src": "rustfmt/pkg/rustfmt_wasm.js",
-            "use": "@vercel/static"
-        }
     ]
 }

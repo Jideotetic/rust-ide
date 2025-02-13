@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { start } from "./utils/worker";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import init, { format_rust_code } from "../../rustfmt/pkg/rustfmt_wasm.js";
+import init, { format_rust_code } from "../rustfmt/pkg/rustfmt_wasm.js";
 
 export default function App() {
     const [editor, setEditor] = useState(null);
