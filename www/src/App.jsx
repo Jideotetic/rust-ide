@@ -40,7 +40,6 @@ export default function App() {
         console.log("Formatting code...");
 
         if (monacoEditor) {
-            console.log(editorContent);
             const formattedCode = format_rust_code(editorContent);
 
             monacoEditor.setValue(formattedCode);

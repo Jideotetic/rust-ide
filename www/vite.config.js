@@ -8,8 +8,6 @@ const projectRoot = new URL(".", import.meta.url).pathname
     .splice(1, 6)
     .join("/");
 
-console.log(projectRoot);
-
 // https://vite.dev/config/
 export default defineConfig({
     plugins: [
