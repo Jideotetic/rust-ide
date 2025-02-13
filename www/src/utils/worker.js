@@ -410,12 +410,12 @@ export const start = async (monacoElementRef, setEditorContent) => {
 
     await initRA();
 
-    const editor = monaco.editor.create(monacoElementRef.current, {
+    const myEditor = monaco.editor.create(monacoElementRef.current, {
         theme: "vscode-dark-plus",
         model: model,
     });
 
-    window.onresize = () => editor.layout();
+    window.onresize = () => myEditor.layout();
 
-    return editor;
+    return { myEditor, model };
 };

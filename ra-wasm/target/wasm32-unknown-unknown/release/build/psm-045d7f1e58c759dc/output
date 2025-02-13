@@ -18,9 +18,9 @@ AR_wasm32_unknown_unknown = None
 TARGET_AR = None
 AR = None
 CROSS_COMPILE = None
-running: "ar" "cq" "C:\\Users\\JIDE\\Desktop\\repos\\rust-analyzer-wasm\\ra-wasm\\target\\wasm32-unknown-unknown\\release\\build\\psm-045d7f1e58c759dc\\out\\libpsm_s.a" "src/arch/wasm32.o"
+running: "ar" "cq" "C:\\Users\\JIDE\\Desktop\\repos\\rust-ide\\ra-wasm\\target\\wasm32-unknown-unknown\\release\\build\\psm-045d7f1e58c759dc\\out\\libpsm_s.a" "src/arch/wasm32.o"
 exit code: 0
-running: "ar" "s" "C:\\Users\\JIDE\\Desktop\\repos\\rust-analyzer-wasm\\ra-wasm\\target\\wasm32-unknown-unknown\\release\\build\\psm-045d7f1e58c759dc\\out\\libpsm_s.a"
+running: "ar" "s" "C:\\Users\\JIDE\\Desktop\\repos\\rust-ide\\ra-wasm\\target\\wasm32-unknown-unknown\\release\\build\\psm-045d7f1e58c759dc\\out\\libpsm_s.a"
 exit code: 0
 cargo:rustc-link-lib=static=psm_s
-cargo:rustc-link-search=native=C:\Users\JIDE\Desktop\repos\rust-analyzer-wasm\ra-wasm\target\wasm32-unknown-unknown\release\build\psm-045d7f1e58c759dc\out
+cargo:rustc-link-search=native=C:\Users\JIDE\Desktop\repos\rust-ide\ra-wasm\target\wasm32-unknown-unknown\release\build\psm-045d7f1e58c759dc\out
