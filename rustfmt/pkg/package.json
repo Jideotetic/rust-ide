@@ -1,0 +1,24 @@
+{
+  "name": "rustfmt-wasm",
+  "type": "module",
+  "collaborators": [
+    "Rasoul Hesami Rostami <h.rostami.r@gmail.com>"
+  ],
+  "description": "A simple Rust and WebAssembly program.",
+  "version": "0.3.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rasoul678/rustfmt-wasm"
+  },
+  "files": [
+    "rustfmt_wasm_bg.wasm",
+    "rustfmt_wasm.js",
+    "rustfmt_wasm.d.ts"
+  ],
+  "main": "rustfmt_wasm.js",
+  "types": "rustfmt_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

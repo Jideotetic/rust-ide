@@ -1,0 +1,1 @@
+{"rustc":524190467255570058,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[8183159027058728099,"build_script_build",false,5058865947346433538]],"local":[{"RerunIfChanged":{"output":"wasm32-unknown-unknown\\release\\build\\prettyplease-5a4e81b44221f459\\output","paths":["build.rs"]}}],"rustflags":[],"metadata":0,"config":0,"compile_kind":0}
