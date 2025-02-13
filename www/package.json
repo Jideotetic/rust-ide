@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@beincom/bic-signer-wasm": "^0.0.14",
     "@tailwindcss/vite": "^4.0.0",
     "monaco-editor": "^0.27.0",
     "react": "^18.3.1",
