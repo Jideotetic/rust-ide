@@ -49,7 +49,10 @@ export default function App() {
 
     useEffect(() => {
         const handleKeyPress = (event) => {
-            if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+            if (
+                (event.ctrlKey || event.metaKey) &&
+                (event.key === "s" || event.key === "S")
+            ) {
                 event.preventDefault();
                 handleFormat();
             }
