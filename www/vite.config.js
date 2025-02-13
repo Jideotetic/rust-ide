@@ -31,7 +31,6 @@ export default defineConfig({
         },
         mimeTypes: {
             ".wasm": "application/wasm",
-            ".js": "application/js",
         },
         headers: {
             "Cross-Origin-Embedder-Policy": "require-corp",
