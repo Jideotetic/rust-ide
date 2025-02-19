@@ -232,8 +232,9 @@ export class WorldState {
     * @param {string} fake_std
     * @param {string} fake_core
     * @param {string} fake_alloc
+    * @param {string} fake_soroban_sdk
     */
-    init(code, fake_std, fake_core, fake_alloc) {
+    init(code, fake_std, fake_core, fake_alloc, fake_soroban_sdk) {
         var ptr0 = passStringToWasm0(code, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len0 = WASM_VECTOR_LEN;
         var ptr1 = passStringToWasm0(fake_std, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
@@ -242,7 +243,9 @@ export class WorldState {
         var len2 = WASM_VECTOR_LEN;
         var ptr3 = passStringToWasm0(fake_alloc, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len3 = WASM_VECTOR_LEN;
-        wasm.worldstate_init(this.ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+        var ptr4 = passStringToWasm0(fake_soroban_sdk, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len4 = WASM_VECTOR_LEN;
+        wasm.worldstate_init(this.ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4);
     }
     /**
     * @param {string} code

@@ -62,6 +62,7 @@ import exampleCode from "../../example-code.rs?raw";
 import fake_std from "../../fake_std.rs?raw";
 import fake_core from "../../fake_core.rs?raw";
 import fake_alloc from "../../fake_alloc.rs?raw";
+import fake_soroban_sdk from "../../fake_soroban_sdk.rs?raw";
 
 self.MonacoEnvironment = {
     getWorker: (_, label) => {
@@ -204,6 +205,7 @@ export const registerRA = async () => {
                 pos.lineNumber,
                 pos.column
             );
+
             if (suggestions) {
                 return { suggestions };
             }
@@ -403,7 +405,13 @@ export const start = async (monacoElementRef, setEditorContent) => {
         state = await createRA();
 
         await registerRA();
-        await state.init(model.getValue(), fake_std, fake_core, fake_alloc);
+        await state.init(
+            model.getValue(),
+            fake_std,
+            fake_core,
+            fake_alloc,
+            fake_soroban_sdk
+        );
         await update();
         model.onDidChangeContent(update);
     };

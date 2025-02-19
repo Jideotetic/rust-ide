@@ -89,7 +89,7 @@ export default function App() {
                                             onClick={handleCompile}
                                             className="p-2 bg-green-700 text-white absolute rounded bottom-2 right-4 z-50 cursor-pointer disabled:cursor-not-allowed disabled:bg-green-200"
                                         >
-                                            Compile
+                                            Run
                                         </button>
                                     </>
                                 )}

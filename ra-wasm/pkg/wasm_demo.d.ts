@@ -24,8 +24,9 @@ export class WorldState {
 * @param {string} fake_std
 * @param {string} fake_core
 * @param {string} fake_alloc
+* @param {string} fake_soroban_sdk
 */
-  init(code: string, fake_std: string, fake_core: string, fake_alloc: string): void;
+  init(code: string, fake_std: string, fake_core: string, fake_alloc: string, fake_soroban_sdk: string): void;
 /**
 * @param {string} code
 * @returns {any}
@@ -134,7 +135,7 @@ export interface InitOutput {
   readonly start: () => void;
   readonly __wbg_worldstate_free: (a: number) => void;
   readonly worldstate_new: () => number;
-  readonly worldstate_init: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => void;
+  readonly worldstate_init: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => void;
   readonly worldstate_update: (a: number, b: number, c: number) => number;
   readonly worldstate_inlay_hints: (a: number) => number;
   readonly worldstate_completions: (a: number, b: number, c: number) => number;
