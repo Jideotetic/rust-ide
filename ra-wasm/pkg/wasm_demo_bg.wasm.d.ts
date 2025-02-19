@@ -3,7 +3,7 @@
 export function start(): void;
 export function __wbg_worldstate_free(a: number): void;
 export function worldstate_new(): number;
-export function worldstate_init(a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number): void;
+export function worldstate_init(a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number): void;
 export function worldstate_update(a: number, b: number, c: number): number;
 export function worldstate_inlay_hints(a: number): number;
 export function worldstate_completions(a: number, b: number, c: number): number;

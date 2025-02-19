@@ -66,12 +66,14 @@ pub fn from_single_file(
     fake_std: String,
     fake_core: String,
     fake_alloc: String,
+    fake_soroban_sdk: String,
 ) -> (AnalysisHost, FileId) {
     let mut host = AnalysisHost::default();
     let file_id = FileId(0);
     let std_id = FileId(1);
     let core_id = FileId(2);
     let alloc_id = FileId(3);
+    let soroban_sdk_id = FileId(4);
 
     let mut file_set = FileSet::default();
     file_set.insert(file_id, VfsPath::new_virtual_path("/my_crate/main.rs".to_string()));
@@ -83,15 +85,18 @@ pub fn from_single_file(
         create_source_root("std", std_id),
         create_source_root("core", core_id),
         create_source_root("alloc", alloc_id),
+        create_source_root("soroban_sdk", soroban_sdk_id),
     ]);
     let mut crate_graph = CrateGraph::default();
     let my_crate = create_crate(&mut crate_graph, file_id);
     let std_crate = create_crate(&mut crate_graph, std_id);
     let core_crate = create_crate(&mut crate_graph, core_id);
     let alloc_crate = create_crate(&mut crate_graph, alloc_id);
+    let soroban_sdk_crate = create_crate(&mut crate_graph, soroban_sdk_id);
     let core_dep = Dependency::new(CrateName::new("core").unwrap(), core_crate);
     let alloc_dep = Dependency::new(CrateName::new("alloc").unwrap(), alloc_crate);
     let std_dep = Dependency::new(CrateName::new("std").unwrap(), std_crate);
+    let soroban_sdk_dep = Dependency::new(CrateName::new("soroban_sdk").unwrap(), soroban_sdk_crate);
 
     crate_graph.add_dep(std_crate, core_dep.clone()).unwrap();
     crate_graph.add_dep(std_crate, alloc_dep.clone()).unwrap();
@@ -100,11 +105,13 @@ pub fn from_single_file(
     crate_graph.add_dep(my_crate, core_dep).unwrap();
     crate_graph.add_dep(my_crate, alloc_dep).unwrap();
     crate_graph.add_dep(my_crate, std_dep).unwrap();
+    crate_graph.add_dep(my_crate, soroban_sdk_dep).unwrap();
 
     change.change_file(file_id, Some(Arc::new(text)));
     change.change_file(std_id, Some(Arc::new(fake_std)));
     change.change_file(core_id, Some(Arc::new(fake_core)));
     change.change_file(alloc_id, Some(Arc::new(fake_alloc)));
+    change.change_file(soroban_sdk_id, Some(Arc::new(fake_soroban_sdk)));
     change.set_crate_graph(crate_graph);
     host.apply_change(change);
     (host, file_id)
@@ -121,12 +128,12 @@ impl WorldState {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         let (host, file_id) =
-            from_single_file("".to_owned(), "".to_owned(), "".to_owned(), "".to_owned());
+            from_single_file("".to_owned(), "".to_owned(), "".to_owned(), "".to_owned(), "".to_owned());
         Self { host, file_id }
     }
 
-    pub fn init(&mut self, code: String, fake_std: String, fake_core: String, fake_alloc: String) {
-        let (host, file_id) = from_single_file(code, fake_std, fake_core, fake_alloc);
+    pub fn init(&mut self, code: String, fake_std: String, fake_core: String, fake_alloc: String, fake_soroban_sdk: String) {
+        let (host, file_id) = from_single_file(code, fake_std, fake_core, fake_alloc, fake_soroban_sdk);
         self.host = host;
         self.file_id = file_id;
     }

@@ -63,6 +63,23 @@ export const grammar = {
         "use",
         "where",
         "macro_rules",
+        // Soroban-specific keywords
+        "contract",
+        "interface",
+        "event",
+        "storage",
+        "env",
+        "invoke",
+        "deploy",
+        "call",
+        "emit",
+        "require",
+        "assert",
+        "balance",
+        "address",
+        "transfer",
+        "mint",
+        "burn",
     ],
 
     controlFlowKeywords: [
@@ -131,6 +148,16 @@ export const grammar = {
         "pid_t",
         "mode_t",
         "ssize_t",
+        // Soroban-specific types
+        "AccountId",
+        "Amount",
+        "Asset",
+        "Timestamp",
+        "Duration",
+        "Hash",
+        "Signature",
+        "PublicKey",
+        "PrivateKey",
     ],
 
     operators: [
@@ -260,5 +287,6 @@ export const grammar = {
         ],
 
         func_decl: [[/[a-z_$][\w$]*/, "support.function", "@pop"]],
+        contract_decl: [[/[a-z_$][\w$]*/, "support.function", "@pop"]],
     },
 };
