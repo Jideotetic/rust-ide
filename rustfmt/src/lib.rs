@@ -15,7 +15,7 @@ pub fn format_rust_code(code: &str) -> Result<String, JsValue> {
 
     result = format_imports_and_modules(&result);
 
-    result = add_spaces_after_blocks_expr(&result);
+    // result = add_spaces_after_blocks_expr(&result);
 
     Ok(result)
 }
@@ -40,15 +40,25 @@ fn add_spaces_after_blocks_expr(code: &str) -> String {
 
 fn format_imports_and_modules(code: &str) -> String {
     let mut result = String::new();
+    let mut attributes = Vec::new();
     let mut imports = Vec::new();
     let mut other_code = Vec::new();
 
     for line in code.lines() {
-        if line.trim().starts_with("use ") || line.trim().starts_with("mod ") {
+        if line.trim().starts_with("#![") || line.trim().starts_with("#[") {
+            // Collect attributes (e.g., #![no_std], #[cfg], etc.)
+            attributes.push(line.trim());
+        } else if line.trim().starts_with("use ") || line.trim().starts_with("mod ") {
+            // Collect use and mod statements
             imports.push(line.trim());
         } else {
+            // Collect the rest of the code
             other_code.push(line);
         }
+    }
+
+    for attr in attributes {
+        result.push_str(&format!("{}\n", attr));
     }
 
     // Sort and format imports
@@ -57,7 +67,7 @@ fn format_imports_and_modules(code: &str) -> String {
         result.push_str(&format!("{}\n", import));
     }
 
-    result.push_str(&format!("\n\n"));
+    // result.push_str(&format!("\n\n"));
 
     // Add the rest of the code
     for line in other_code {
