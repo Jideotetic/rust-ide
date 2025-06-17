@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { start } from "./utils/worker";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import init, { format_rust_code } from "../../rustfmt/pkg/rustfmt_wasm.js";
+// import init, { format_rust_code } from "../../rustfmt/pkg/rustfmt_wasm.js";
 import Entry from "./components/Entry.jsx";
 import FileTree from "./components/FileTree.jsx";
 import useTree from "./hooks/useTree.js";
 import TabButton from "./components/TabButton.jsx";
+import ActionsDropdown from "./components/ActionsDropDown.jsx";
 
 export default function App() {
     const [fileTree, setFileTree] = useState(null);
@@ -19,34 +20,39 @@ export default function App() {
     const [monacoEditor, setMonacoEditor] = useState(null);
     const { insertNode, deleteNode, updateNode } = useTree();
 
+    // useEffect(() => {
+    //     if (monacoElementRef) {
+    //         console.log(monacoElementRef);
+    //         setEditor(async (editor) => {
+    //             if (editor) return editor;
+
+    //             // await init();
+
+    //             const { myEditor, model } = await start(
+    //                 monacoElementRef,
+    //                 setEditorContent
+    //             );
+    //             setLoading(false);
+    //             setMonacoEditor(model);
+
+    //             return myEditor;
+    //         });
+    //     }
+
+    //     return () => {
+    //         if (editor) {
+    //             editor.dispose();
+    //         }
+    //     };
+    //     // eslint-disable-next-line
+    // }, [monacoElementRef.current]);
+
+    // SET THE CONTENT OF THE EDITOR
+
     useEffect(() => {
-        if (monacoElementRef) {
-            setEditor(async (editor) => {
-                if (editor) return editor;
-
-                await init();
-
-                const { myEditor, model } = await start(
-                    monacoElementRef,
-                    setEditorContent
-                );
-                setLoading(false);
-                setMonacoEditor(model);
-
-                return myEditor;
-            });
+        if (!monacoEditor || !selectedTabId) {
+            return;
         }
-
-        return () => {
-            if (editor) {
-                editor.dispose();
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [monacoElementRef.current]);
-
-    useEffect(() => {
-        if (!monacoEditor || !selectedTabId) return;
 
         const activeFile = activeEditorTabs.find(
             (tab) => tab.id === selectedTabId
@@ -58,17 +64,54 @@ export default function App() {
                 setEditorContent(activeFile.content || "");
             }
         }
-    }, [monacoEditor, selectedTabId, activeEditorTabs]);
+    }, [selectedTabId, activeEditorTabs, monacoEditor]);
+
+    // useEffect(() => {
+    //     if (!monacoEditor || !selectedTabId) return;
+
+    //     // Update the tab content whenever editorContent changes
+    //     setActiveEditorTabs((tabs) =>
+    //         tabs.map((tab) =>
+    //             tab.id === selectedTabId
+    //                 ? { ...tab, content: editorContent }
+    //                 : tab
+    //         )
+    //     );
+    // }, [editorContent, selectedTabId, monacoEditor]);
 
     const handleFormat = useCallback(async () => {
         console.log("Formatting code...");
 
-        if (monacoEditor) {
-            const formattedCode = format_rust_code(editorContent);
+        if (!monacoEditor) return;
 
-            monacoEditor.setValue(formattedCode);
+        try {
+            const res = await fetch("http://localhost:4000/format", {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: editorContent,
+            });
+
+            if (!res.ok) throw new Error("Failed to format code");
+
+            const formatted = await res.text();
+            monacoEditor.setValue(formatted);
+            setEditorContent(formatted);
+        } catch (err) {
+            console.error("Error formatting code:", err);
         }
     }, [editorContent, monacoEditor]);
+
+    const handleSave = useCallback(() => {
+        if (!selectedTabId || !monacoEditor) return;
+
+        const content = monacoEditor.getValue();
+        setEditorContent(content);
+        setActiveEditorTabs((tabs) =>
+            tabs.map((tab) =>
+                tab.id === selectedTabId ? { ...tab, content } : tab
+            )
+        );
+    }, [selectedTabId, monacoEditor]);
 
     useEffect(() => {
         const handleKeyPress = (event) => {
@@ -77,7 +120,7 @@ export default function App() {
                 (event.key === "s" || event.key === "S")
             ) {
                 event.preventDefault();
-                handleFormat();
+                handleSave();
             }
         };
 
@@ -86,11 +129,11 @@ export default function App() {
         return () => {
             document.removeEventListener("keydown", handleKeyPress);
         };
-    }, [handleFormat]);
+    }, [handleSave]);
 
-    const handleCompile = useCallback(async () => {
-        console.log("Compiling code...");
-    }, []);
+    // const handleCompile = useCallback(async () => {
+    //     console.log("Compiling code...");
+    // }, []);
 
     async function handleOpenFolder() {
         try {
@@ -104,7 +147,6 @@ export default function App() {
                 children,
                 handle: dirHandle,
             };
-            console.log(root);
             setFileTree(root);
             setLoadingFiles(false);
         } catch (err) {
@@ -137,14 +179,15 @@ export default function App() {
             };
 
             setFileTree(root);
-            setActiveEditorTabs([
-                {
-                    id: fileNode.id,
-                    name: fileNode.name,
-                    content: fileNode.data,
-                },
-            ]);
-            setSelectedTabId(fileNode.id);
+            // setActiveEditorTabs([
+            //     {
+            //         id: fileNode.id,
+            //         name: fileNode.name,
+            //         content: fileNode.data,
+            //     },
+            // ]);
+            // setSelectedTabId(fileNode.id);
+            handleActiveEditorTabs(fileNode.id, fileNode.name, fileNode.data);
         } catch (err) {
             console.error("Error opening file:", err);
         }
@@ -204,11 +247,12 @@ export default function App() {
         };
 
         setFileTree(insertNode(fileTree, parentId, newFile));
-        setActiveEditorTabs([
-            ...activeEditorTabs,
-            { id: newFile.id, name: newFile.name, data: newFile.data },
-        ]);
-        setSelectedTabId(newFile.id);
+        // setActiveEditorTabs([
+        //     ...activeEditorTabs,
+        //     { id: newFile.id, name: newFile.name, data: newFile.data },
+        // ]);
+        // setSelectedTabId(newFile.id);
+        handleActiveEditorTabs(newFile.id, newFile.name, newFile.data);
     };
 
     const handleAddFolder = (parentId, folderName) => {
@@ -236,24 +280,83 @@ export default function App() {
         }
     };
 
-    const handleActiveEditorTabs = (tabId, tabName, tabData) => {
-        const newTab = {
-            id: tabId,
-            name: tabName,
-            content: tabData,
+    const handleActiveEditorTabs = useCallback(
+        async (tabId, tabName, tabData) => {
+            const newTab = {
+                id: tabId,
+                name: tabName,
+                content: tabData,
+            };
+
+            const isAlreadyOpened = activeEditorTabs.some(
+                (activeTab) => activeTab.id === tabId
+            );
+
+            if (!isAlreadyOpened) {
+                setActiveEditorTabs([...activeEditorTabs, newTab]);
+            }
+
+            setSelectedTabId(tabId);
+
+            if (!monacoElementRef.current) {
+                const waitForRef = () => {
+                    return new Promise((resolve) => {
+                        const check = () => {
+                            if (monacoElementRef.current) {
+                                resolve();
+                            } else {
+                                requestAnimationFrame(check);
+                            }
+                        };
+                        check();
+                    });
+                };
+
+                await waitForRef();
+            }
+
+            if (!editor) {
+                try {
+                    const { myEditor, model } = await start(
+                        monacoElementRef,
+                        (newContent) => {
+                            // Only update editorContent, not tabs
+                            setEditorContent(newContent);
+                        }
+                    );
+                    setEditor(myEditor);
+                    setMonacoEditor(model);
+                    // setLoading(false);
+
+                    // Set content after initialization
+                    // if (tabData) {
+                    model.setValue(tabData || "");
+                    setEditorContent(tabData || "");
+                    // }
+                } catch (error) {
+                    console.error("Editor initialization failed:", error);
+                } finally {
+                    setLoading(false);
+                }
+            } else if (tabData) {
+                const currentTab = activeEditorTabs.find(
+                    (tab) => tab.id === tabId
+                );
+                const contentToShow = currentTab?.content || tabData || "";
+                monacoEditor.setValue(contentToShow);
+                setEditorContent(contentToShow);
+            }
+        },
+        [activeEditorTabs, editor, monacoEditor]
+    );
+
+    useEffect(() => {
+        return () => {
+            if (editor) {
+                editor.dispose();
+            }
         };
-
-        const isAlreadyOpened = activeEditorTabs.some(
-            (activeTab) => activeTab.id === tabId
-        );
-
-        if (!isAlreadyOpened) {
-            setActiveEditorTabs([...activeEditorTabs, newTab]);
-            setSelectedTabId(tabId);
-        } else {
-            setSelectedTabId(tabId);
-        }
-    };
+    }, [editor]);
 
     return (
         <PanelGroup className="h-full" direction="horizontal">
@@ -314,15 +417,9 @@ export default function App() {
                                                 <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin" />
                                             </div>
                                         ) : (
-                                            <>
-                                                <button
-                                                    disabled={loading}
-                                                    onClick={handleCompile}
-                                                    className="p-2 bg-green-700 text-white absolute rounded bottom-2 right-4 z-50 cursor-pointer disabled:cursor-not-allowed disabled:bg-green-200"
-                                                >
-                                                    Run
-                                                </button>
-                                            </>
+                                            <ActionsDropdown
+                                                handleFormat={handleFormat}
+                                            />
                                         )}
                                     </div>
                                 </Panel>

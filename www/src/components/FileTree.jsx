@@ -243,14 +243,12 @@ function FileTree({
 
     return (
         <div
-            onClick={
-                () =>
-                    handleActiveEditorTabs(
-                        fileTree.id,
-                        fileTree.name,
-                        fileTree.data
-                    )
-                // handleFileClick?.(fileTree)
+            onClick={() =>
+                handleActiveEditorTabs(
+                    fileTree.id,
+                    fileTree.name,
+                    fileTree.data
+                )
             }
             onMouseOver={() => setShowOptions(true)}
             onMouseLeave={() => setShowOptions(false)}
