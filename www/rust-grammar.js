@@ -80,6 +80,8 @@ export const grammar = {
         "transfer",
         "mint",
         "burn",
+        "contractimport",
+        "soroban_sdk",
     ],
 
     controlFlowKeywords: [
@@ -211,6 +213,15 @@ export const grammar = {
     tokenizer: {
         root: [
             // identifiers and keywords
+            [/soroban_sdk::contractimport!/, "soroban.macro"],
+            [
+                /#!?\[cfg\([^\]]*\)\]/,
+                "meta.annotation", // or 'soroban.attribute'
+            ],
+            [
+                /#!?\[[^\]]+\]/,
+                "meta.annotation", // for other attributes
+            ],
             [
                 /[a-z_$][\w$]*/,
                 {
