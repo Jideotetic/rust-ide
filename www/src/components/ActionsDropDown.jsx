@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { GoKebabHorizontal } from "react-icons/go";
 
 // Replace your current format button with this dropdown component
-const ActionsDropdown = ({ handleFormat }) => {
+const ActionsDropdown = ({ handleFormat, handleCompile, handleTest }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -31,12 +31,10 @@ const ActionsDropdown = ({ handleFormat }) => {
                 handleFormat();
                 break;
             case "test":
-                console.log("Running tests...");
-                // Add your test logic here
+                handleTest();
                 break;
             case "build":
-                console.log("Building project...");
-                // Add your build logic here
+                handleCompile();
                 break;
             default:
                 break;

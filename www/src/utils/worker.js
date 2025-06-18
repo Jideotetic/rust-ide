@@ -387,6 +387,44 @@ export const start = async (monacoElementRef, setEditorContent) => {
         allTokens = res.highlights;
     }
 
+    monaco.languages.registerCompletionItemProvider(modeId, {
+        provideCompletionItems: (model, position) => {
+            // Add Soroban-specific completions
+            return {
+                suggestions: [
+                    {
+                        label: "contractimport!",
+                        kind: monaco.languages.CompletionItemKind.Function,
+                        documentation: "Soroban SDK contract import macro",
+                        insertText:
+                            'soroban_sdk::contractimport!(file = "${1:path}");',
+                        insertTextRules:
+                            monaco.languages.CompletionItemInsertTextRule
+                                .InsertAsSnippet,
+                        range: new monaco.Range(
+                            position.lineNumber,
+                            position.column,
+                            position.lineNumber,
+                            position.column
+                        ),
+                    },
+                    {
+                        label: "soroban_sdk",
+                        kind: monaco.languages.CompletionItemKind.Module,
+                        documentation: "Soroban SDK module",
+                        insertText: "soroban_sdk",
+                        range: new monaco.Range(
+                            position.lineNumber,
+                            position.column,
+                            position.lineNumber,
+                            position.column
+                        ),
+                    },
+                ],
+            };
+        },
+    });
+
     monaco.editor.defineTheme("vscode-dark-plus", {
         base: "vs-dark",
         inherit: true,
@@ -398,6 +436,8 @@ export const start = async (monacoElementRef, setEditorContent) => {
             { token: "keyword.control", foreground: "C586C0" },
             { token: "variable", foreground: "9CDCFE" },
             { token: "support.function", foreground: "DCDCAA" },
+            { token: "soroban.macro", foreground: "569CD6" },
+            { token: "soroban.attribute", foreground: "D7BA7D" },
         ],
     });
 
@@ -421,6 +461,17 @@ export const start = async (monacoElementRef, setEditorContent) => {
     const myEditor = monaco.editor.create(monacoElementRef.current, {
         theme: "vscode-dark-plus",
         model: model,
+        language: modeId,
+        automaticLayout: true,
+        minimap: { enabled: true },
+        // Enable these for better Rust/Soroban experience
+        quickSuggestions: {
+            other: true,
+            comments: false,
+            strings: true,
+        },
+        parameterHints: { enabled: true },
+        suggestOnTriggerCharacters: true,
     });
 
     window.onresize = () => myEditor.layout();
