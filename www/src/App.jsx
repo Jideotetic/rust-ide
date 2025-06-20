@@ -23,373 +23,6 @@ export default function App() {
     const { insertNode, deleteNode, updateNode } = useTree();
     const [result, setResult] = useState("");
 
-    // Loads project from backend
-    // const loadProject = useCallback(async (projectId) => {
-    //     try {
-    //         setLoadingFiles(true);
-
-    //         const res = await fetch(
-    //             `http://localhost:4000/api/projects/${projectId}/download`
-    //         );
-
-    //         if (!res.ok) throw new Error("Failed to load project");
-
-    //         const blob = await res.blob();
-    //         const zip = await JSZip.loadAsync(blob);
-
-    //         // 3. Extract files with progress tracking
-    //         const extractedFiles = {};
-    //         const fileNames = Object.keys(zip.files);
-
-    //         for (const filename of fileNames) {
-    //             const file = zip.files[filename];
-    //             if (!file.dir) {
-    //                 const content = await file.async("string");
-    //                 const cleanPath = filename.replace(
-    //                     new RegExp(`^${projectId}/?`),
-    //                     ""
-    //                 ); // Remove any root folder
-    //                 extractedFiles[cleanPath] = content;
-    //             }
-    //         }
-
-    //         const buildTree = (files) => {
-    //             const root = {
-    //                 id: Date.now(),
-    //                 type: "folder",
-    //                 name: "Project",
-    //                 children: [],
-    //                 handle: null,
-    //             };
-
-    //             Object.entries(files).forEach(([filePath, content]) => {
-    //                 const parts = filePath.split("/").filter(Boolean);
-    //                 let currentLevel = root.children;
-
-    //                 parts.forEach((part, index) => {
-    //                     const existing = currentLevel.find(
-    //                         (item) => item.name === part
-    //                     );
-    //                     if (existing) {
-    //                         currentLevel = existing.children || [];
-    //                     } else {
-    //                         const isFile = index === parts.length - 1;
-    //                         const newNode = {
-    //                             id: `${projectId}-${filePath}-${index}`,
-    //                             type: isFile ? "file" : "folder",
-    //                             name: part,
-    //                             path: parts.slice(0, index + 1).join("/"),
-    //                             data: isFile ? content : undefined,
-    //                             children: isFile ? undefined : [],
-    //                         };
-    //                         currentLevel.push(newNode);
-    //                         if (!isFile) {
-    //                             currentLevel = newNode.children;
-    //                         }
-    //                     }
-    //                 });
-    //             });
-
-    //             return root;
-    //         };
-
-    //         const fileTree = buildTree(extractedFiles);
-
-    //         // const files = await res.json();
-
-    //         // const buildTree = (files) => {
-    //         //     const root = {
-    //         //         id: Date.now(),
-    //         //         type: "folder",
-    //         //         name: "New Folder",
-    //         //         children: [],
-    //         //         handle: null,
-    //         //     };
-
-    //         //     Object.entries(files).forEach(([filePath, content]) => {
-    //         //         const parts = filePath.split("/").filter((p) => p);
-    //         //         let currentLevel = root.children;
-
-    //         //         parts.forEach((part, index) => {
-    //         //             const existingPath = currentLevel.find(
-    //         //                 (item) => item.name === part
-    //         //             );
-
-    //         //             if (existingPath) {
-    //         //                 currentLevel = existingPath.children || [];
-    //         //             } else {
-    //         //                 const isFile = index === parts.length - 1;
-    //         //                 const newNode = {
-    //         //                     id: `${projectId}-${filePath}-${index}`,
-    //         //                     type: isFile ? "file" : "folder",
-    //         //                     name: part,
-    //         //                     path: parts.slice(0, index + 1).join("/"),
-    //         //                     handle: null,
-    //         //                     data: isFile ? content : undefined,
-    //         //                     children: isFile ? undefined : [],
-    //         //                 };
-
-    //         //                 currentLevel.push(newNode);
-    //         //                 currentLevel = isFile
-    //         //                     ? currentLevel
-    //         //                     : newNode.children;
-    //         //             }
-    //         //         });
-    //         //     });
-
-    //         //     return root;
-    //         // };
-
-    //         // const fileTree = buildTree(files);
-
-    //         setFileTree(fileTree);
-    //         updateUrlWithProjectId(projectId);
-    //         setLoadingFiles(false);
-    //         setResult("Project loaded successfully");
-    //         alert("Project loaded successfully");
-    //     } catch (err) {
-    //         console.error("Error loading project:", err);
-    //         setLoadingFiles(false);
-    //         alert(err);
-    //         setResult(err);
-    //     }
-    // }, []);
-
-    // const loadProject = useCallback(async (projectId) => {
-    //     try {
-    //         setLoadingFiles(true);
-
-    //         // 1. Download the project as ZIP
-    //         const res = await fetch(
-    //             `http://localhost:4000/api/projects/${projectId}/download`
-    //         );
-
-    //         if (!res.ok) {
-    //             const errorText = await res.text();
-    //             throw new Error(errorText || "Failed to load project");
-    //         }
-
-    //         // 2. Process the ZIP file
-    //         const blob = await res.blob();
-
-    //         try {
-    //             const zip = await JSZip.loadAsync(blob, {
-    //                 checkCRC32: true,
-    //                 optimizedBinaryString: true,
-    //             });
-
-    //             // 3. Extract files with structure preservation
-    //             const extractedFiles = {};
-    //             const fileNames = Object.keys(zip.files);
-
-    //             for (const filename of fileNames) {
-    //                 const file = zip.files[filename];
-    //                 if (!file.dir && !filename.match(/__MACOSX|\.DS_Store/)) {
-    //                     try {
-    //                         const content = await file.async("text");
-    //                         // Preserve original path structure
-    //                         const cleanPath = filename.replace(
-    //                             new RegExp(`^${projectId}/?`),
-    //                             ""
-    //                         );
-    //                         if (cleanPath) {
-    //                             extractedFiles[cleanPath] = content;
-    //                         }
-    //                     } catch (fileErr) {
-    //                         console.warn(
-    //                             `Failed to extract ${filename}:`,
-    //                             fileErr
-    //                         );
-    //                     }
-    //                 }
-    //             }
-
-    //             // 4. Build the file tree
-    //             const buildTree = (files) => {
-    //                 const root = {
-    //                     id: Date.now(),
-    //                     type: "folder",
-    //                     name: "Project",
-    //                     children: [],
-    //                     handle: null,
-    //                 };
-
-    //                 Object.entries(files).forEach(([filePath, content]) => {
-    //                     const parts = filePath.split("/").filter(Boolean);
-    //                     let currentLevel = root.children;
-
-    //                     parts.forEach((part, index) => {
-    //                         const existing = currentLevel.find(
-    //                             (item) => item.name === part
-    //                         );
-    //                         if (existing) {
-    //                             currentLevel = existing.children || [];
-    //                         } else {
-    //                             const isFile = index === parts.length - 1;
-    //                             const newNode = {
-    //                                 id: `${projectId}-${filePath}-${index}`,
-    //                                 type: isFile ? "file" : "folder",
-    //                                 name: part,
-    //                                 path: parts.slice(0, index + 1).join("/"),
-    //                                 data: isFile ? content : undefined,
-    //                                 children: isFile ? undefined : [],
-    //                             };
-    //                             currentLevel.push(newNode);
-    //                             if (!isFile) {
-    //                                 currentLevel = newNode.children;
-    //                             }
-    //                         }
-    //                     });
-    //                 });
-
-    //                 return root;
-    //             };
-
-    //             const fileTree = buildTree(extractedFiles);
-    //             setFileTree(fileTree);
-    //             updateUrlWithProjectId(projectId);
-    //             setResult("Project loaded successfully");
-    //         } catch (zipErr) {
-    //             console.error("ZIP processing error:", zipErr);
-    //             throw new Error("Invalid project file format");
-    //         }
-    //     } catch (err) {
-    //         console.error("Error loading project:", err);
-    //         setResult(err.message || "Failed to load project");
-    //     } finally {
-    //         setLoadingFiles(false);
-    //     }
-    // }, []);
-
-    // const loadProject = useCallback(async (projectId) => {
-    //     try {
-    //         setLoadingFiles("Loading project...");
-
-    //         // 1. Download the project as ZIP
-    //         const response = await fetch(
-    //             `http://localhost:4000/api/projects/${projectId}/download`
-    //         );
-
-    //         if (!response.ok) {
-    //             let errorMsg = "Failed to load project";
-    //             try {
-    //                 const errorData = await response.json();
-    //                 errorMsg = errorData.error || errorMsg;
-    //                 if (errorData.details) {
-    //                     console.error(
-    //                         "Server error details:",
-    //                         errorData.details
-    //                     );
-    //                 }
-    //             } catch (e) {
-    //                 console.error("Failed to parse error response:", e);
-    //             }
-    //             throw new Error(errorMsg);
-    //         }
-
-    //         // 2. Process the ZIP file
-    //         const blob = await response.blob();
-
-    //         try {
-    //             setLoadingFiles("Extracting files...");
-    //             const zip = await JSZip.loadAsync(blob, {
-    //                 checkCRC32: true,
-    //                 optimizedBinaryString: true,
-    //             });
-
-    //             // 3. Extract files with progress
-    //             const extractedFiles = {};
-    //             const fileNames = Object.keys(zip.files);
-    //             let processedCount = 0;
-
-    //             for (const filename of fileNames) {
-    //                 const file = zip.files[filename];
-    //                 if (!file.dir && !filename.match(/__MACOSX|\.DS_Store/)) {
-    //                     try {
-    //                         const content = await file.async("text");
-    //                         const cleanPath = filename.replace(
-    //                             new RegExp(`^${projectId}/?`),
-    //                             ""
-    //                         );
-    //                         if (cleanPath) {
-    //                             extractedFiles[cleanPath] = content;
-    //                         }
-    //                     } catch (fileErr) {
-    //                         console.warn(`Skipped ${filename}:`, fileErr);
-    //                     }
-    //                 }
-    //                 processedCount++;
-    //                 setLoadingFiles(
-    //                     `Processing files... ${Math.round(
-    //                         (processedCount / fileNames.length) * 100
-    //                     )}%`
-    //                 );
-    //             }
-
-    //             // 4. Build the file tree
-    //             setLoadingFiles("Building file tree...");
-    //             const fileTree = buildFileTree(projectId, extractedFiles);
-
-    //             setFileTree(fileTree);
-    //             updateUrlWithProjectId(projectId);
-    //             setResult("Project loaded successfully");
-    //         } catch (zipErr) {
-    //             console.error("ZIP processing failed:", zipErr);
-    //             throw new Error("Invalid project file format");
-    //         }
-    //     } catch (err) {
-    //         console.error("Project load failed:", err);
-    //         setResult(err.message || "Failed to load project");
-    //         // Show user-friendly error
-    //         alert(
-    //             `Error: ${err.message}\n\nPlease try again or contact support.`
-    //         );
-    //     } finally {
-    //         setLoadingFiles(false);
-    //     }
-    // }, []);
-
-    // Helper function for building file tree
-    // const buildFileTree = (projectId, files) => {
-    //     const root = {
-    //         id: Date.now(),
-    //         type: "folder",
-    //         name: "Project",
-    //         children: [],
-    //         handle: null,
-    //     };
-
-    //     Object.entries(files).forEach(([filePath, content]) => {
-    //         const parts = filePath.split("/").filter(Boolean);
-    //         let currentLevel = root.children;
-
-    //         parts.forEach((part, index) => {
-    //             const existing = currentLevel.find(
-    //                 (item) => item.name === part
-    //             );
-    //             if (existing) {
-    //                 currentLevel = existing.children || [];
-    //             } else {
-    //                 const isFile = index === parts.length - 1;
-    //                 const newNode = {
-    //                     id: `${projectId}-${filePath}-${index}`,
-    //                     type: isFile ? "file" : "folder",
-    //                     name: part,
-    //                     path: parts.slice(0, index + 1).join("/"),
-    //                     data: isFile ? content : undefined,
-    //                     children: isFile ? undefined : [],
-    //                 };
-    //                 currentLevel.push(newNode);
-    //                 if (!isFile) currentLevel = newNode.children;
-    //             }
-    //         });
-    //     });
-
-    //     return root;
-    // };
-
-    // Check for project ID in URL when component mounts and load the project from backend
-
     const loadProject = useCallback(async () => {
         try {
             setLoadingFiles(true);
@@ -526,6 +159,64 @@ export default function App() {
         }
     }, [editorContent, monacoEditor]);
 
+    // const handleSave = useCallback(async () => {
+    //     setSaving(true);
+    //     if (!selectedTabId || !monacoEditor) return;
+
+    //     const projectId = getProjectIdFromUrl();
+
+    //     const content = monacoEditor.getValue();
+    //     setEditorContent(content);
+    //     const activeFile = activeEditorTabs.find(
+    //         (tab) => tab.id === selectedTabId
+    //     );
+    //     if (!activeFile || !activeFile.path) {
+    //         console.log("Missing file path:", activeFile);
+    //         alert("File path not found. Cannot save.");
+    //         return;
+    //     }
+
+    //     try {
+    //         const res = await fetch(
+    //             `http://localhost:4000/api/projects/${projectId}/files`,
+    //             {
+    //                 method: "PUT",
+    //                 headers: {
+    //                     "Content-Type": "application/json",
+    //                 },
+    //                 body: JSON.stringify({
+    //                     path: activeFile.path,
+    //                     content,
+    //                 }),
+    //             }
+    //         );
+
+    //         if (!res.ok) {
+    //             throw new Error("Failed to save file.");
+    //         }
+
+    //         const result = await res.json();
+
+    //         const formattedContent = result.content
+
+    //         monacoEditor.setValue(formattedContent);
+    //         setEditorContent(formattedContent);
+    //     } catch (error) {
+    //         console.error("Save error:", error);
+    //         alert("Failed to save file.");
+    //         setSaving(false);
+    //     }
+
+    //     setActiveEditorTabs((tabs) =>
+    //         tabs.map((tab) =>
+    //             tab.id === selectedTabId
+    //                 ? { ...tab, content: formattedContent }
+    //                 : tab
+    //         )
+    //     );
+    //     setSaving(false);
+    // }, [selectedTabId, monacoEditor, activeEditorTabs]);
+
     const handleSave = useCallback(async () => {
         setSaving(true);
         if (!selectedTabId || !monacoEditor) return;
@@ -534,12 +225,14 @@ export default function App() {
 
         const content = monacoEditor.getValue();
         setEditorContent(content);
+
         const activeFile = activeEditorTabs.find(
             (tab) => tab.id === selectedTabId
         );
         if (!activeFile || !activeFile.path) {
             console.log("Missing file path:", activeFile);
             alert("File path not found. Cannot save.");
+            setSaving(false);
             return;
         }
 
@@ -561,18 +254,27 @@ export default function App() {
             if (!res.ok) {
                 throw new Error("Failed to save file.");
             }
+
+            const result = await res.json();
+            const formattedContent = result.content;
+
+            // Update the Monaco editor and state with formatted content
+            monacoEditor.setValue(formattedContent);
+            setEditorContent(formattedContent);
+
+            setActiveEditorTabs((tabs) =>
+                tabs.map((tab) =>
+                    tab.id === selectedTabId
+                        ? { ...tab, content: formattedContent }
+                        : tab
+                )
+            );
         } catch (error) {
             console.error("Save error:", error);
             alert("Failed to save file.");
+        } finally {
             setSaving(false);
         }
-
-        setActiveEditorTabs((tabs) =>
-            tabs.map((tab) =>
-                tab.id === selectedTabId ? { ...tab, content } : tab
-            )
-        );
-        setSaving(false);
     }, [selectedTabId, monacoEditor, activeEditorTabs]);
 
     useEffect(() => {
@@ -722,23 +424,6 @@ export default function App() {
             alert("Error running tests: " + err.message);
         }
     }, [editorContent, monacoEditor]);
-
-    // async function readDirectoryFiles(dirHandle, path = "") {
-    //     const files = {};
-    //     for await (const [name, handle] of dirHandle.entries()) {
-    //         if (handle.kind === "file") {
-    //             const filePath = path ? `${path}/${name}` : name;
-    //             files[filePath] = await (await handle.getFile()).text();
-    //         } else if (handle.kind === "directory") {
-    //             const nestedFiles = await readDirectoryFiles(
-    //                 handle,
-    //                 path ? `${path}/${name}` : name
-    //             );
-    //             Object.assign(files, nestedFiles);
-    //         }
-    //     }
-    //     return files;
-    // }
 
     const findFilePathById = useCallback((node, id) => {
         if (node.id === id && node.path) return node.path;
@@ -1127,7 +812,7 @@ export default function App() {
                         <Panel>
                             <PanelGroup direction="horizontal">
                                 <Panel>
-                                    <div className="flex">
+                                    <div className="flex overflow-x-auto scrollbar-hidden">
                                         {activeEditorTabs.map((tab) => (
                                             <TabButton
                                                 key={tab.id}
