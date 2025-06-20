@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { start } from "./utils/worker";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-// import init, { format_rust_code } from "../../rustfmt/pkg/rustfmt_wasm.js";
 import Entry from "./components/Entry.jsx";
 import FileTree from "./components/FileTree.jsx";
 import useTree from "./hooks/useTree.js";
 import TabButton from "./components/TabButton.jsx";
 import ActionsDropdown from "./components/ActionsDropDown.jsx";
-import { getProjectIdFromUrl } from "./utils/project-id.js";
+import JSZip from "jszip";
 
 export default function App() {
     const [fileTree, setFileTree] = useState(null);
@@ -19,20 +18,41 @@ export default function App() {
     const [editorContent, setEditorContent] = useState("");
     const monacoElementRef = useRef(null);
     const [monacoEditor, setMonacoEditor] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [building, setBuilding] = useState(false);
     const { insertNode, deleteNode, updateNode } = useTree();
+    const [result, setResult] = useState("");
 
-    const loadProject = useCallback(async (projectId) => {
+    const loadProject = useCallback(async () => {
         try {
             setLoadingFiles(true);
 
+            const projectId = getProjectIdFromUrl();
+
             const res = await fetch(
-                `https://sorobuild-ide-backend.onrender.com/api/projects/${projectId}/files`
+                `http://localhost:4000/api/projects/${projectId}/download`
             );
 
             if (!res.ok) throw new Error("Failed to load project");
 
-            const files = await res.json();
-            console.log(files);
+            const blob = await res.blob();
+            console.log("ZIP raw content (as text)", blob.slice(0, 100));
+            const zip = await JSZip.loadAsync(blob);
+
+            const extractedFiles = {};
+            await Promise.all(
+                Object.keys(zip.files).map(async (filename) => {
+                    const file = zip.files[filename];
+                    if (!file.dir) {
+                        const content = await file.async("string");
+                        const cleanPath = filename.replace(
+                            new RegExp(`^${projectId}/?`),
+                            ""
+                        );
+                        extractedFiles[cleanPath] = content;
+                    }
+                })
+            );
 
             const buildTree = (files) => {
                 const root = {
@@ -44,16 +64,15 @@ export default function App() {
                 };
 
                 Object.entries(files).forEach(([filePath, content]) => {
-                    const parts = filePath.split("/").filter((p) => p);
+                    const parts = filePath.split("/").filter(Boolean);
                     let currentLevel = root.children;
 
                     parts.forEach((part, index) => {
-                        const existingPath = currentLevel.find(
+                        const existing = currentLevel.find(
                             (item) => item.name === part
                         );
-
-                        if (existingPath) {
-                            currentLevel = existingPath.children || [];
+                        if (existing) {
+                            currentLevel = existing.children || [];
                         } else {
                             const isFile = index === parts.length - 1;
                             const newNode = {
@@ -61,15 +80,13 @@ export default function App() {
                                 type: isFile ? "file" : "folder",
                                 name: part,
                                 path: parts.slice(0, index + 1).join("/"),
-                                handle: null,
                                 data: isFile ? content : undefined,
                                 children: isFile ? undefined : [],
                             };
-
                             currentLevel.push(newNode);
-                            currentLevel = isFile
-                                ? currentLevel
-                                : newNode.children;
+                            if (!isFile) {
+                                currentLevel = newNode.children;
+                            }
                         }
                     });
                 });
@@ -77,19 +94,25 @@ export default function App() {
                 return root;
             };
 
-            const fileTree = buildTree(files);
+            const extractedTree = buildTree(extractedFiles);
+            setFileTree(extractedTree);
 
-            setFileTree(fileTree);
-            updateUrlWithProjectId(projectId);
+            console.log("Build successful");
             setLoadingFiles(false);
-        } catch (err) {
-            console.error("Error loading project:", err);
-            setLoadingFiles(false);
-            alert("Something went wrong");
+            setResult("Build successful");
+            alert("Project loaded successfully");
+        } catch (error) {
+            console.error("Error compiling contract:", error);
+
+            const message =
+                error instanceof Error ? error.message : JSON.stringify(error);
+
+            alert(message);
+            setResult(message);
+            setBuilding(false);
         }
     }, []);
 
-    // Check for project ID in URL when component mounts and load the project from backend
     useEffect(() => {
         const projectId = getProjectIdFromUrl();
         if (projectId) {
@@ -120,14 +143,11 @@ export default function App() {
         if (!monacoEditor) return;
 
         try {
-            const res = await fetch(
-                "https://sorobuild-ide-backend.onrender.com/format",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain" },
-                    body: editorContent,
-                }
-            );
+            const res = await fetch("http://localhost:4000/format", {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: editorContent,
+            });
 
             if (!res.ok) throw new Error("Failed to format code");
 
@@ -139,17 +159,123 @@ export default function App() {
         }
     }, [editorContent, monacoEditor]);
 
-    const handleSave = useCallback(() => {
+    // const handleSave = useCallback(async () => {
+    //     setSaving(true);
+    //     if (!selectedTabId || !monacoEditor) return;
+
+    //     const projectId = getProjectIdFromUrl();
+
+    //     const content = monacoEditor.getValue();
+    //     setEditorContent(content);
+    //     const activeFile = activeEditorTabs.find(
+    //         (tab) => tab.id === selectedTabId
+    //     );
+    //     if (!activeFile || !activeFile.path) {
+    //         console.log("Missing file path:", activeFile);
+    //         alert("File path not found. Cannot save.");
+    //         return;
+    //     }
+
+    //     try {
+    //         const res = await fetch(
+    //             `http://localhost:4000/api/projects/${projectId}/files`,
+    //             {
+    //                 method: "PUT",
+    //                 headers: {
+    //                     "Content-Type": "application/json",
+    //                 },
+    //                 body: JSON.stringify({
+    //                     path: activeFile.path,
+    //                     content,
+    //                 }),
+    //             }
+    //         );
+
+    //         if (!res.ok) {
+    //             throw new Error("Failed to save file.");
+    //         }
+
+    //         const result = await res.json();
+
+    //         const formattedContent = result.content
+
+    //         monacoEditor.setValue(formattedContent);
+    //         setEditorContent(formattedContent);
+    //     } catch (error) {
+    //         console.error("Save error:", error);
+    //         alert("Failed to save file.");
+    //         setSaving(false);
+    //     }
+
+    //     setActiveEditorTabs((tabs) =>
+    //         tabs.map((tab) =>
+    //             tab.id === selectedTabId
+    //                 ? { ...tab, content: formattedContent }
+    //                 : tab
+    //         )
+    //     );
+    //     setSaving(false);
+    // }, [selectedTabId, monacoEditor, activeEditorTabs]);
+
+    const handleSave = useCallback(async () => {
+        setSaving(true);
         if (!selectedTabId || !monacoEditor) return;
+
+        const projectId = getProjectIdFromUrl();
 
         const content = monacoEditor.getValue();
         setEditorContent(content);
-        setActiveEditorTabs((tabs) =>
-            tabs.map((tab) =>
-                tab.id === selectedTabId ? { ...tab, content } : tab
-            )
+
+        const activeFile = activeEditorTabs.find(
+            (tab) => tab.id === selectedTabId
         );
-    }, [selectedTabId, monacoEditor]);
+        if (!activeFile || !activeFile.path) {
+            console.log("Missing file path:", activeFile);
+            alert("File path not found. Cannot save.");
+            setSaving(false);
+            return;
+        }
+
+        try {
+            const res = await fetch(
+                `http://localhost:4000/api/projects/${projectId}/files`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        path: activeFile.path,
+                        content,
+                    }),
+                }
+            );
+
+            if (!res.ok) {
+                throw new Error("Failed to save file.");
+            }
+
+            const result = await res.json();
+            const formattedContent = result.content;
+
+            // Update the Monaco editor and state with formatted content
+            monacoEditor.setValue(formattedContent);
+            setEditorContent(formattedContent);
+
+            setActiveEditorTabs((tabs) =>
+                tabs.map((tab) =>
+                    tab.id === selectedTabId
+                        ? { ...tab, content: formattedContent }
+                        : tab
+                )
+            );
+        } catch (error) {
+            console.error("Save error:", error);
+            alert("Failed to save file.");
+        } finally {
+            setSaving(false);
+        }
+    }, [selectedTabId, monacoEditor, activeEditorTabs]);
 
     useEffect(() => {
         const handleKeyPress = (event) => {
@@ -169,44 +295,105 @@ export default function App() {
         };
     }, [handleSave]);
 
-    const handleCompile = useCallback(async () => {
-        console.log("Compiling contract...");
+    const handleBuild = useCallback(async () => {
+        console.log("Building contract...");
 
         if (!monacoEditor) return;
 
+        const projectId = getProjectIdFromUrl();
+
+        setBuilding(true);
         try {
             const res = await fetch(
-                "https://sorobuild-ide-backend.onrender.com/compile",
+                `http://localhost:4000/api/projects/${projectId}/build`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "text/plain" },
-                    body: editorContent,
                 }
             );
 
-            const result = await res.json();
-
-            if (!result.success) {
-                throw new Error(result.error || "Compilation failed");
+            if (!res.ok) {
+                throw new Error(await res.text());
             }
 
-            console.log("Compilation successful", result.output);
-            // setCompilationOutput(result.output);
+            const blob = await res.blob();
+            const zip = await JSZip.loadAsync(blob);
 
-            // Convert base64 WASM to a downloadable file
-            const byteCharacters = atob(result.wasm);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            // const byteArray = new Uint8Array(byteNumbers);
-            // const blob = new Blob([byteArray], { type: "application/wasm" });
-            // setWasmFile(URL.createObjectURL(blob));
+            const extractedFiles = {};
+            await Promise.all(
+                Object.keys(zip.files).map(async (filename) => {
+                    const file = zip.files[filename];
+                    if (!file.dir) {
+                        const content = await file.async("string");
+                        const cleanPath = filename.replace(
+                            new RegExp(`^${projectId}/?`),
+                            ""
+                        );
+                        extractedFiles[cleanPath] = content;
+                    }
+                })
+            );
+
+            const buildTree = (files) => {
+                const root = {
+                    id: Date.now(),
+                    type: "folder",
+                    name: "New Folder",
+                    children: [],
+                    handle: null,
+                };
+
+                Object.entries(files).forEach(([filePath, content]) => {
+                    const parts = filePath.split("/").filter(Boolean);
+                    let currentLevel = root.children;
+
+                    parts.forEach((part, index) => {
+                        const existing = currentLevel.find(
+                            (item) => item.name === part
+                        );
+                        if (existing) {
+                            currentLevel = existing.children || [];
+                        } else {
+                            const isFile = index === parts.length - 1;
+                            const newNode = {
+                                id: `${projectId}-${filePath}-${index}`,
+                                type: isFile ? "file" : "folder",
+                                name: part,
+                                path: parts.slice(0, index + 1).join("/"),
+                                data: isFile ? content : undefined,
+                                children: isFile ? undefined : [],
+                            };
+                            currentLevel.push(newNode);
+                            if (!isFile) {
+                                currentLevel = newNode.children;
+                            }
+                        }
+                    });
+                });
+
+                return root;
+            };
+
+            const extractedTree = buildTree(extractedFiles);
+            setFileTree(extractedTree);
+
+            // if (!result.success) {
+            //     throw new Error(result.error || "Compilation failed");
+            // }
+
+            console.log("Build successful");
+            setBuilding(false);
+            setResult("Build successful");
         } catch (err) {
             console.error("Error compiling contract:", err);
-            // setCompilationOutput(err.output || err.message);
+
+            const message =
+                err instanceof Error ? err.message : JSON.stringify(err);
+
+            alert(message);
+            setResult(message);
+            setBuilding(false);
         }
-    }, [editorContent, monacoEditor]);
+    }, [monacoEditor]);
 
     const handleTest = useCallback(async () => {
         console.log("Testing code...");
@@ -214,14 +401,11 @@ export default function App() {
         if (!monacoEditor) return;
 
         try {
-            const res = await fetch(
-                "https://sorobuild-ide-backend.onrender.com/test",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain" },
-                    body: editorContent,
-                }
-            );
+            const res = await fetch("http://localhost:4000/test", {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: editorContent,
+            });
 
             if (!res.ok) throw new Error("Failed to run tests");
 
@@ -241,339 +425,39 @@ export default function App() {
         }
     }, [editorContent, monacoEditor]);
 
-    // async function readDirectoryFiles(dirHandle, path = "") {
-    //     const files = {};
-    //     for await (const [name, handle] of dirHandle.entries()) {
-    //         if (handle.kind === "file") {
-    //             const filePath = path ? `${path}/${name}` : name;
-    //             files[filePath] = await (await handle.getFile()).text();
-    //         } else if (handle.kind === "directory") {
-    //             const nestedFiles = await readDirectoryFiles(
-    //                 handle,
-    //                 path ? `${path}/${name}` : name
-    //             );
-    //             Object.assign(files, nestedFiles);
-    //         }
-    //     }
-    //     return files;
-    // }
+    const findFilePathById = useCallback((node, id) => {
+        if (node.id === id && node.path) return node.path;
 
-    const updateUrlWithProjectId = (projectId) => {
-        const url = new URL(window.location);
-        url.searchParams.set("projectId", projectId);
-        window.history.pushState({}, "", url);
-    };
-
-    // const removeProjectIdFromUrl = () => {
-    //     const url = new URL(window.location);
-    //     url.searchParams.delete("projectId");
-    //     window.history.pushState({}, "", url);
-    // };
-
-    // async function getDirectoryStructure(dirHandle, path = "") {
-    //     const structure = {};
-    //     for await (const [name, handle] of dirHandle.entries()) {
-    //         const currentPath = path ? `${path}/${name}` : name;
-    //         if (handle.kind === "directory") {
-    //             Object.assign(
-    //                 structure,
-    //                 await getDirectoryStructure(handle, currentPath)
-    //             );
-    //         } else {
-    //             const file = await handle.getFile();
-    //             structure[currentPath] = { size: file.size };
-    //         }
-    //     }
-    //     return structure;
-    // }
-
-    // async function getFileFromPath(dirHandle, pathArray) {
-    //     let currentHandle = dirHandle;
-    //     for (let i = 0; i < pathArray.length - 1; i++) {
-    //         currentHandle = await currentHandle.getDirectoryHandle(
-    //             pathArray[i]
-    //         );
-    //     }
-    //     return await currentHandle.getFileHandle(
-    //         pathArray[pathArray.length - 1]
-    //     );
-    // }
-
-    // async function handleOpenFolder() {
-    //     try {
-    //         const dirHandle = await window.showDirectoryPicker();
-    //         setLoadingFiles(true);
-
-    //         const fileStructure = await getDirectoryStructure(dirHandle);
-    //         console.log("Directory structure:", fileStructure);
-
-    //         // const files = await readDirectoryFiles(dirHandle);
-    //         const files = {};
-    //         let totalSize = 0;
-    //         const MAX_SIZE = 10 * 1024 * 1024; // 10MB limit
-
-    //         for await (const [path, { size }] of Object.entries(
-    //             fileStructure
-    //         )) {
-    //             if (size === undefined) continue; // Skip directories
-
-    //             if (totalSize + size > MAX_SIZE) {
-    //                 console.log(`Skipping large file: ${path} (${size} bytes)`);
-    //                 files[path] = "[file too large]";
-    //                 continue;
-    //             }
-
-    //             try {
-    //                 const file = await getFileFromPath(
-    //                     dirHandle,
-    //                     path.split("/")
-    //                 );
-    //                 files[path] = await file.text();
-    //                 totalSize += size;
-    //             } catch (error) {
-    //                 console.log(`Error reading file ${path}:`, error);
-    //                 files[path] = "[read error]";
-    //             }
-    //         }
-
-    //         const projectRes = await fetch(
-    //             "https://sorobuild-ide-backend.onrender.com/api/projects",
-    //             {
-    //                 method: "POST",
-    //                 headers: { "Content-Type": "application/json" },
-    //                 body: JSON.stringify({ files }),
-    //             }
-    //         );
-
-    //         if (!projectRes.ok) throw new Error("Failed to create project");
-
-    //         const { projectId } = await projectRes.json();
-
-    //         updateUrlWithProjectId(projectId);
-
-    //         const children = await readDirectoryTree(dirHandle);
-
-    //         const root = {
-    //             id: Date.now(),
-    //             type: "folder",
-    //             name: dirHandle.name || "root",
-    //             children,
-    //             handle: dirHandle,
-    //         };
-    //         setFileTree(root);
-    //         setLoadingFiles(false);
-    //     } catch (err) {
-    //         console.error("Error reading directory:", err);
-    //         setLoadingFiles(false);
-    //     }
-    // }
-
-    async function handleOpenFolder() {
-        try {
-            const dirHandle = await window.showDirectoryPicker();
-            setLoadingFiles(true);
-
-            // First create empty project
-            const projectRes = await fetch(
-                "https://sorobuild-ide-backend.onrender.com/api/projects",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ files: {} }),
-                }
-            );
-
-            if (!projectRes.ok) throw new Error("Failed to create project");
-            const { projectId } = await projectRes.json();
-            updateUrlWithProjectId(projectId);
-
-            // Then upload files one by one
-            await uploadFilesRecursively(dirHandle, projectId);
-
-            // Build UI tree
-            const children = await readDirectoryTree(dirHandle);
-            setFileTree({
-                id: Date.now(),
-                type: "folder",
-                name: dirHandle.name || "root",
-                children,
-                handle: dirHandle,
-            });
-
-            setLoadingFiles(false);
-        } catch (err) {
-            console.error("Error reading directory:", err);
-            setLoadingFiles(false);
-        }
-    }
-
-    async function uploadFilesRecursively(dirHandle, projectId, path = "") {
-        for await (const [name, handle] of dirHandle.entries()) {
-            const currentPath = path ? `${path}/${name}` : name;
-
-            if (handle.kind === "file") {
-                try {
-                    const file = await handle.getFile();
-                    const content = await file.text();
-
-                    await fetch(
-                        `https://sorobuild-ide-backend.onrender.com/api/projects/${projectId}/files`,
-                        {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                path: currentPath,
-                                content,
-                            }),
-                        }
-                    );
-                } catch (error) {
-                    console.error(`Error uploading ${currentPath}:`, error);
-                }
-            } else if (handle.kind === "directory") {
-                await uploadFilesRecursively(handle, projectId, currentPath);
+        if (node.children) {
+            for (const child of node.children) {
+                const result = findFilePathById(child, id);
+                if (result) return result;
             }
         }
-    }
 
-    async function handleOpenFile() {
-        try {
-            const [fileHandle] = await window.showOpenFilePicker();
-            setLoadingFiles(true);
-            const file = await fileHandle.getFile();
-            const text = await file.text();
-
-            const projectRes = await fetch(
-                "https://sorobuild-ide-backend.onrender.com/api/projects",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ files: { [file.name]: text } }),
-                }
-            );
-
-            if (!projectRes.ok) throw new Error("Failed to create project");
-
-            const { projectId } = await projectRes.json();
-            updateUrlWithProjectId(projectId);
-
-            const fileNode = {
-                id: Date.now(),
-                type: "file",
-                name: file.name,
-                path: "/" + file.name,
-                handle: fileHandle,
-                data: text,
-            };
-
-            // You could use a similar tree structure like when opening a folder
-            const root = {
-                id: Date.now() + 1,
-                type: "folder",
-                name: "New Folder",
-                children: [fileNode],
-                handle: null,
-            };
-
-            setFileTree(root);
-            setLoadingFiles(false);
-
-            handleActiveEditorTabs(fileNode.id, fileNode.name, fileNode.data);
-        } catch (err) {
-            console.error("Error opening file:", err);
-            setLoadingFiles(false);
-        }
-    }
-
-    async function readDirectoryTree(dirHandle, path = "") {
-        const tree = [];
-        for await (const [name, handle] of dirHandle.entries()) {
-            const id = Date.now() + Math.random();
-            if (handle.kind === "file") {
-                tree.push({
-                    id,
-                    type: "file",
-                    name,
-                    path: path + "/" + name,
-                    handle,
-                    data: await (await handle.getFile()).text(),
-                });
-            } else if (handle.kind === "directory") {
-                tree.push({
-                    id,
-                    type: "folder",
-                    name,
-                    path: path + "/" + name,
-                    handle,
-                    children: await readDirectoryTree(
-                        handle,
-                        path + "/" + name
-                    ),
-                });
-            }
-        }
-        return tree;
-    }
-
-    const handleRename = (id, newName) => {
-        setFileTree(updateNode(fileTree, id, newName));
-        setActiveEditorTabs(
-            activeEditorTabs.map((tab) =>
-                tab.id === id ? { ...tab, name: newName } : tab
-            )
-        );
-    };
-
-    const handleDelete = (id) => {
-        const updatedTree = deleteNode(fileTree, id);
-        setFileTree(updatedTree);
-        setActiveEditorTabs(activeEditorTabs.filter((tab) => tab.id !== id));
-    };
-
-    const handleAddFile = (parentId, fileName) => {
-        const newFile = {
-            id: Date.now(),
-            type: "file",
-            name: fileName,
-            data: "",
-        };
-
-        setFileTree(insertNode(fileTree, parentId, newFile));
-
-        handleActiveEditorTabs(newFile.id, newFile.name, newFile.data);
-    };
-
-    const handleAddFolder = (parentId, folderName) => {
-        const newFolder = {
-            id: Date.now(),
-            type: "folder",
-            name: folderName,
-            children: [],
-        };
-
-        setFileTree(insertNode(fileTree, parentId, newFolder));
-    };
-
-    const handleCloseTab = (tabId) => {
-        const updatedActiveEditorTabs = activeEditorTabs.filter(
-            (tab) => tab.id !== tabId
-        );
-
-        setActiveEditorTabs(updatedActiveEditorTabs);
-
-        if (activeEditorTabs.length !== 1) {
-            setSelectedTabId(updatedActiveEditorTabs.at(-1).id);
-        } else {
-            setSelectedTabId(null);
-        }
-    };
+        return null;
+    }, []);
 
     const handleActiveEditorTabs = useCallback(
         async (tabId, tabName, tabData) => {
+            if (monacoEditor && selectedTabId) {
+                const currentContent = monacoEditor.getValue();
+                setActiveEditorTabs((tabs) =>
+                    tabs.map((tab) =>
+                        tab.id === selectedTabId
+                            ? { ...tab, content: currentContent }
+                            : tab
+                    )
+                );
+            }
+
             const newTab = {
                 id: tabId,
                 name: tabName,
                 content: tabData,
+                path: fileTree
+                    ? findFilePathById(fileTree, tabId)
+                    : `/${tabName}`,
             };
 
             const isAlreadyOpened = activeEditorTabs.some(
@@ -631,7 +515,258 @@ export default function App() {
                 setEditorContent(contentToShow);
             }
         },
-        [activeEditorTabs, editor, monacoEditor]
+        [
+            activeEditorTabs,
+            editor,
+            monacoEditor,
+            selectedTabId,
+            findFilePathById,
+            fileTree,
+        ]
+    );
+
+    const readDirectoryTree = useCallback(async (dirHandle, path = "") => {
+        const tree = [];
+        for await (const [name, handle] of dirHandle.entries()) {
+            const id = Date.now() + Math.random();
+            if (handle.kind === "file") {
+                tree.push({
+                    id,
+                    type: "file",
+                    name,
+                    path: path + "/" + name,
+                    handle,
+                    data: await (await handle.getFile()).text(),
+                });
+            } else if (handle.kind === "directory") {
+                tree.push({
+                    id,
+                    type: "folder",
+                    name,
+                    path: path + "/" + name,
+                    handle,
+                    children: await readDirectoryTree(
+                        handle,
+                        path + "/" + name
+                    ),
+                });
+            }
+        }
+        return tree;
+    }, []);
+
+    const updateUrlWithProjectId = async (projectId) => {
+        const url = new URL(window.location);
+        url.searchParams.set("projectId", projectId);
+        window.history.pushState({}, "", url);
+    };
+
+    const uploadFilesRecursively = useCallback(
+        async (dirHandle, projectId, path = "") => {
+            for await (const [name, handle] of dirHandle.entries()) {
+                const currentPath = path ? `${path}/${name}` : name;
+
+                if (handle.kind === "file") {
+                    try {
+                        const file = await handle.getFile();
+                        const content = await file.text();
+
+                        await fetch(
+                            `http://localhost:4000/api/projects/${projectId}/files`,
+                            {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    path: currentPath,
+                                    content,
+                                }),
+                            }
+                        );
+                    } catch (error) {
+                        console.error(`Error uploading ${currentPath}:`, error);
+                    }
+                } else if (handle.kind === "directory") {
+                    await uploadFilesRecursively(
+                        handle,
+                        projectId,
+                        currentPath
+                    );
+                }
+            }
+        },
+        []
+    );
+
+    const getProjectIdFromUrl = () => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("projectId");
+    };
+
+    const handleOpenFolder = useCallback(async () => {
+        try {
+            const dirHandle = await window.showDirectoryPicker();
+            setLoadingFiles(true);
+
+            // CREATE AN EMPTY PROJECT IN THE BACKEND
+            const projectRes = await fetch(
+                "http://localhost:4000/api/projects",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ files: {} }),
+                }
+            );
+
+            if (!projectRes.ok) throw new Error("Failed to create project");
+
+            const { projectId } = await projectRes.json();
+            updateUrlWithProjectId(projectId);
+
+            // Then upload files one by one
+            await uploadFilesRecursively(dirHandle, projectId);
+
+            // Build UI tree
+            const children = await readDirectoryTree(dirHandle);
+            setFileTree({
+                id: Date.now(),
+                type: "folder",
+                name: dirHandle.name || "root",
+                children,
+                handle: dirHandle,
+            });
+
+            setLoadingFiles(false);
+            setResult("Project loaded successfully");
+            alert("Project loaded successfully");
+        } catch (err) {
+            console.error("Error reading directory:", err);
+            setLoadingFiles(false);
+            setResult(err);
+            alert(err);
+        }
+    }, [readDirectoryTree, uploadFilesRecursively]);
+
+    const handleOpenFile = useCallback(async () => {
+        try {
+            const [fileHandle] = await window.showOpenFilePicker();
+            setLoadingFiles(true);
+            const file = await fileHandle.getFile();
+            const text = await file.text();
+
+            const projectRes = await fetch(
+                "http://localhost:4000/api/projects",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ files: { [file.name]: text } }),
+                }
+            );
+
+            if (!projectRes.ok) throw new Error("Failed to create project");
+
+            const { projectId } = await projectRes.json();
+            updateUrlWithProjectId(projectId);
+
+            // BUILD UI TREE
+            const fileNode = {
+                id: Date.now(),
+                type: "file",
+                name: file.name,
+                path: "/" + file.name,
+                handle: fileHandle,
+                data: text,
+            };
+
+            const root = {
+                id: Date.now() + 1,
+                type: "folder",
+                name: "New Folder",
+                children: [fileNode],
+                handle: null,
+            };
+
+            setFileTree(root);
+            console.log(fileTree);
+            setLoadingFiles(false);
+
+            handleActiveEditorTabs(fileNode.id, fileNode.name, fileNode.data);
+
+            setResult("Project loaded successfully");
+            alert("Project loaded successfully");
+        } catch (err) {
+            console.error("Error opening file:", err);
+            setLoadingFiles(false);
+            setResult(err);
+            alert(err);
+        }
+    }, [handleActiveEditorTabs, fileTree]);
+
+    const handleRename = (id, newName) => {
+        setFileTree(updateNode(fileTree, id, newName));
+        setActiveEditorTabs(
+            activeEditorTabs.map((tab) =>
+                tab.id === id ? { ...tab, name: newName } : tab
+            )
+        );
+    };
+
+    const handleDelete = (id) => {
+        const updatedTree = deleteNode(fileTree, id);
+        setFileTree(updatedTree);
+        setActiveEditorTabs(activeEditorTabs.filter((tab) => tab.id !== id));
+    };
+
+    const handleAddFile = (parentId, fileName) => {
+        const newFile = {
+            id: Date.now(),
+            type: "file",
+            name: fileName,
+            data: "",
+        };
+
+        setFileTree(insertNode(fileTree, parentId, newFile));
+
+        handleActiveEditorTabs(newFile.id, newFile.name, newFile.data);
+    };
+
+    const handleAddFolder = (parentId, folderName) => {
+        const newFolder = {
+            id: Date.now(),
+            type: "folder",
+            name: folderName,
+            children: [],
+        };
+
+        setFileTree(insertNode(fileTree, parentId, newFolder));
+    };
+
+    const handleCloseTab = useCallback(
+        (tabId) => {
+            if (monacoEditor && selectedTabId === tabId) {
+                const currentContent = monacoEditor.getValue();
+                setEditorContent(currentContent);
+                setActiveEditorTabs((tabs) =>
+                    tabs.map((tab) =>
+                        tab.id === tabId
+                            ? { ...tab, content: currentContent }
+                            : tab
+                    )
+                );
+            }
+
+            const updatedActiveEditorTabs = activeEditorTabs.filter(
+                (tab) => tab.id !== tabId
+            );
+
+            setActiveEditorTabs(updatedActiveEditorTabs);
+
+            if (activeEditorTabs.length !== 1) {
+                setSelectedTabId(updatedActiveEditorTabs.at(-1).id);
+            } else {
+                setSelectedTabId(null);
+            }
+        },
+        [activeEditorTabs, monacoEditor, selectedTabId]
     );
 
     useEffect(() => {
@@ -677,7 +812,7 @@ export default function App() {
                         <Panel>
                             <PanelGroup direction="horizontal">
                                 <Panel>
-                                    <div className="flex">
+                                    <div className="flex overflow-x-auto scrollbar-hidden">
                                         {activeEditorTabs.map((tab) => (
                                             <TabButton
                                                 key={tab.id}
@@ -703,8 +838,10 @@ export default function App() {
                                         ) : (
                                             <ActionsDropdown
                                                 handleFormat={handleFormat}
-                                                handleCompile={handleCompile}
+                                                handleBuild={handleBuild}
                                                 handleTest={handleTest}
+                                                saving={saving}
+                                                building={building}
                                             />
                                         )}
                                     </div>
@@ -731,7 +868,9 @@ export default function App() {
                             minSize={0}
                             maxSize={100}
                         >
-                            <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
+                            <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll">
+                                {result}
+                            </div>
                         </Panel>
                     </PanelGroup>
                 )}

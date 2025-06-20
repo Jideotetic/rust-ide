@@ -12,13 +12,15 @@
   "dependencies": {
     "@beincom/bic-signer-wasm": "^0.0.14",
     "@tailwindcss/vite": "^4.0.0",
+    "fflate": "^0.8.2",
+    "jszip": "^3.10.1",
     "monaco-editor": "^0.27.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-icons": "^4.12.0",
     "react-resizable-panels": "^2.1.7",
     "tailwindcss": "^4.0.0",
-    "vite-plugin-static-copy": "^2.2.0",
-    "react-icons": "^4.12.0"
+    "vite-plugin-static-copy": "^2.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
