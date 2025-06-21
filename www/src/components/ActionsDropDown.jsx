@@ -4,11 +4,14 @@ import { GoKebabHorizontal } from "react-icons/go";
 
 // Replace your current format button with this dropdown component
 const ActionsDropdown = ({
-    handleFormat,
+    handleDownloadProject,
     handleBuild,
     handleTest,
     saving,
     building,
+    fileTree,
+    downloading,
+    testing,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -33,8 +36,8 @@ const ActionsDropdown = ({
     const handleAction = (action) => {
         setIsOpen(false);
         switch (action) {
-            case "format":
-                handleFormat();
+            case "download":
+                handleDownloadProject();
                 break;
             case "test":
                 handleTest();
@@ -49,26 +52,34 @@ const ActionsDropdown = ({
 
     return (
         <div
-            className="p-2 bg-green-700 text-white absolute rounded bottom-10 right-4 z-50 cursor-pointer hover:bg-green-600 flex items-center gap-1"
+            className="p-2 bg-green-700 text-white absolute rounded bottom-10 right-4 z-50 hover:bg-green-600 flex items-center gap-1"
             ref={dropdownRef}
         >
             {saving ? (
                 "Saving file..."
             ) : building ? (
                 "Building..."
+            ) : downloading ? (
+                "Downloading"
+            ) : testing ? (
+                "Running test..."
             ) : (
                 <>
-                    <button onClick={() => setIsOpen(!isOpen)}>
-                        <GoKebabHorizontal size={14} />
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="w-full block cursor-pointer"
+                    >
+                        <GoKebabHorizontal />
                     </button>
 
                     {isOpen && (
                         <div className="absolute bottom-14 right-4 bg-[#1e1e1e] shadow-lg rounded border border-gray-600 z-50 min-w-32">
                             <button
-                                onClick={() => handleAction("format")}
+                                onClick={() => handleAction("download")}
+                                disabled={!fileTree}
                                 className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
                             >
-                                Format
+                                Download
                             </button>
                             <button
                                 onClick={() => handleAction("test")}

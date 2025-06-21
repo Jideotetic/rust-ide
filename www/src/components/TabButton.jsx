@@ -17,7 +17,7 @@ export default function TabButton({
         <div
             role="button"
             onClick={onClick}
-            className={`${activeClass} cursor-pointer px-4 py-2 text-xs border-r border-vsdark-3 flex items-center gap-3 hover:bg-black hover:text-vsdark-5`}
+            className={`${activeClass} cursor-pointer px-4 py-2 text-xs border-r border-b border-vsdark-3 flex items-center gap-3 hover:bg-black hover:text-vsdark-5`}
         >
             <div className="flex items-center gap-1.5">
                 <span className="flex items-center">

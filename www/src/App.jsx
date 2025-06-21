@@ -22,6 +22,9 @@ export default function App() {
     const [building, setBuilding] = useState(false);
     const { insertNode, deleteNode, updateNode } = useTree();
     const [result, setResult] = useState("");
+    const [hasBuilt, setHasBuilt] = useState(false);
+    const [downloading, setDownloading] = useState(false);
+    const [testing, setTesting] = useState(false);
 
     const loadProject = useCallback(async () => {
         try {
@@ -30,7 +33,7 @@ export default function App() {
             const projectId = getProjectIdFromUrl();
 
             const res = await fetch(
-                `http://localhost:4000/api/projects/${projectId}/download`
+                `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/download`
             );
 
             if (!res.ok) throw new Error("Failed to load project");
@@ -113,6 +116,8 @@ export default function App() {
         }
     }, []);
 
+    console.log(editorContent);
+
     useEffect(() => {
         const projectId = getProjectIdFromUrl();
         if (projectId) {
@@ -137,27 +142,27 @@ export default function App() {
         }
     }, [selectedTabId, activeEditorTabs, monacoEditor]);
 
-    const handleFormat = useCallback(async () => {
-        console.log("Formatting code...");
+    // const handleFormat = useCallback(async () => {
+    //     console.log("Formatting code...");
 
-        if (!monacoEditor) return;
+    //     if (!monacoEditor) return;
 
-        try {
-            const res = await fetch("http://localhost:4000/format", {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" },
-                body: editorContent,
-            });
+    //     try {
+    //         const res = await fetch("https://sorobuild-ide-backend-1.onrender.com/format", {
+    //             method: "POST",
+    //             headers: { "Content-Type": "text/plain" },
+    //             body: editorContent,
+    //         });
 
-            if (!res.ok) throw new Error("Failed to format code");
+    //         if (!res.ok) throw new Error("Failed to format code");
 
-            const formatted = await res.text();
-            monacoEditor.setValue(formatted);
-            setEditorContent(formatted);
-        } catch (err) {
-            console.error("Error formatting code:", err);
-        }
-    }, [editorContent, monacoEditor]);
+    //         const formatted = await res.text();
+    //         monacoEditor.setValue(formatted);
+    //         setEditorContent(formatted);
+    //     } catch (err) {
+    //         console.error("Error formatting code:", err);
+    //     }
+    // }, [editorContent, monacoEditor]);
 
     // const handleSave = useCallback(async () => {
     //     setSaving(true);
@@ -178,7 +183,7 @@ export default function App() {
 
     //     try {
     //         const res = await fetch(
-    //             `http://localhost:4000/api/projects/${projectId}/files`,
+    //             `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/files`,
     //             {
     //                 method: "PUT",
     //                 headers: {
@@ -219,7 +224,7 @@ export default function App() {
 
     const handleSave = useCallback(async () => {
         setSaving(true);
-        if (!selectedTabId || !monacoEditor) return;
+        if (!selectedTabId || !monacoEditor || loadingFiles) return;
 
         const projectId = getProjectIdFromUrl();
 
@@ -238,7 +243,7 @@ export default function App() {
 
         try {
             const res = await fetch(
-                `http://localhost:4000/api/projects/${projectId}/files`,
+                `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/files`,
                 {
                     method: "PUT",
                     headers: {
@@ -275,11 +280,52 @@ export default function App() {
         } finally {
             setSaving(false);
         }
-    }, [selectedTabId, monacoEditor, activeEditorTabs]);
+    }, [selectedTabId, monacoEditor, activeEditorTabs, loadingFiles]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (hasBuilt) {
+                e.preventDefault();
+                e.returnValue =
+                    "You have unsaved changes. Are you sure you want to leave?";
+                return e.returnValue;
+            }
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+        };
+    }, [hasBuilt]);
+
+    // useEffect(() => {
+    //     const handleRouteChange = () => {
+    //         if (
+    //             hasUnsavedChanges &&
+    //             !window.confirm(
+    //                 "You have unsaved changes. Are you sure you want to leave?"
+    //             )
+    //         ) {
+    //             throw "Route change aborted by user";
+    //         }
+    //     };
+
+    //     // If using React Router:
+    //     // const unblock = history.block(handleRouteChange);
+
+    //     // For general navigation:
+    //     window.addEventListener("popstate", handleRouteChange);
+
+    //     return () => {
+    //         // if (unblock) unblock();
+    //         window.removeEventListener("popstate", handleRouteChange);
+    //     };
+    // }, [hasUnsavedChanges]);
 
     useEffect(() => {
         const handleKeyPress = (event) => {
             if (
+                !loadingFiles &&
                 (event.ctrlKey || event.metaKey) &&
                 (event.key === "s" || event.key === "S")
             ) {
@@ -293,7 +339,60 @@ export default function App() {
         return () => {
             document.removeEventListener("keydown", handleKeyPress);
         };
-    }, [handleSave]);
+    }, [handleSave, loadingFiles]);
+
+    const generateZipFromFileTree = useCallback(async () => {
+        const zip = new JSZip();
+
+        // Recursive function to add files to ZIP
+        const addFilesToZip = (node, currentPath = "") => {
+            const nodePath = currentPath
+                ? `${currentPath}/${node.name}`
+                : node.name;
+
+            if (node.type === "file") {
+                zip.file(nodePath, node.data || "");
+            } else if (node.children) {
+                node.children.forEach((child) =>
+                    addFilesToZip(child, nodePath)
+                );
+            }
+        };
+
+        if (fileTree) {
+            addFilesToZip(fileTree);
+            return await zip.generateAsync({ type: "blob" });
+        }
+        return null;
+    }, [fileTree]);
+
+    const handleDownloadProject = useCallback(async () => {
+        try {
+            setDownloading(true);
+            const projectId = getProjectIdFromUrl() || "project";
+            const zipBlob = await generateZipFromFileTree();
+
+            if (!zipBlob) {
+                throw new Error("No files to download");
+            }
+
+            const url = window.URL.createObjectURL(zipBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${projectId}-${new Date()
+                .toISOString()
+                .slice(0, 10)}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            setDownloading(false);
+        } catch (error) {
+            console.error("Download failed:", error);
+            alert("Failed to create download: " + error.message);
+            setDownloading(false);
+        }
+    }, [generateZipFromFileTree]);
 
     const handleBuild = useCallback(async () => {
         console.log("Building contract...");
@@ -305,7 +404,7 @@ export default function App() {
         setBuilding(true);
         try {
             const res = await fetch(
-                `http://localhost:4000/api/projects/${projectId}/build`,
+                `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/build`,
                 {
                     method: "POST",
                 }
@@ -383,6 +482,7 @@ export default function App() {
             console.log("Build successful");
             setBuilding(false);
             setResult("Build successful");
+            setHasBuilt(true);
         } catch (err) {
             console.error("Error compiling contract:", err);
 
@@ -396,34 +496,32 @@ export default function App() {
     }, [monacoEditor]);
 
     const handleTest = useCallback(async () => {
-        console.log("Testing code...");
-
+        setTesting(true);
         if (!monacoEditor) return;
 
+        const projectId = getProjectIdFromUrl();
+
         try {
-            const res = await fetch("http://localhost:4000/test", {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" },
-                body: editorContent,
-            });
+            const res = await fetch(
+                `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/test`,
+                {
+                    method: "POST",
+                }
+            );
 
             if (!res.ok) throw new Error("Failed to run tests");
 
             const testResults = await res.json();
-            console.log("Test results:", testResults);
 
-            // Here you can display the test results in your UI
-            // For example, you might want to show them in one of your panels
-            alert(
-                `Tests ${testResults.passed ? "passed" : "failed"}:\n${
-                    testResults.output
-                }`
-            );
+            alert(testResults.output);
+            setTesting(false);
+            setResult(testResults.output);
         } catch (err) {
             console.error("Error running tests:", err);
             alert("Error running tests: " + err.message);
+            setTesting(false);
         }
-    }, [editorContent, monacoEditor]);
+    }, [monacoEditor]);
 
     const findFilePathById = useCallback((node, id) => {
         if (node.id === id && node.path) return node.path;
@@ -436,6 +534,10 @@ export default function App() {
         }
 
         return null;
+    }, []);
+
+    const handleEditorChange = useCallback((newContent) => {
+        setEditorContent(newContent);
     }, []);
 
     const handleActiveEditorTabs = useCallback(
@@ -491,10 +593,7 @@ export default function App() {
                 try {
                     const { myEditor, model } = await start(
                         monacoElementRef,
-                        (newContent) => {
-                            // Only update editorContent, not tabs
-                            setEditorContent(newContent);
-                        }
+                        handleEditorChange
                     );
                     setEditor(myEditor);
                     setMonacoEditor(model);
@@ -522,6 +621,7 @@ export default function App() {
             selectedTabId,
             findFilePathById,
             fileTree,
+            handleEditorChange,
         ]
     );
 
@@ -572,7 +672,7 @@ export default function App() {
                         const content = await file.text();
 
                         await fetch(
-                            `http://localhost:4000/api/projects/${projectId}/files`,
+                            `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/files`,
                             {
                                 method: "PUT",
                                 headers: { "Content-Type": "application/json" },
@@ -609,7 +709,7 @@ export default function App() {
 
             // CREATE AN EMPTY PROJECT IN THE BACKEND
             const projectRes = await fetch(
-                "http://localhost:4000/api/projects",
+                "https://sorobuild-ide-backend-1.onrender.com/api/projects",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -654,7 +754,7 @@ export default function App() {
             const text = await file.text();
 
             const projectRes = await fetch(
-                "http://localhost:4000/api/projects",
+                "https://sorobuild-ide-backend-1.onrender.com/api/projects",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -837,11 +937,16 @@ export default function App() {
                                             </div>
                                         ) : (
                                             <ActionsDropdown
-                                                handleFormat={handleFormat}
+                                                handleDownloadProject={
+                                                    handleDownloadProject
+                                                }
                                                 handleBuild={handleBuild}
                                                 handleTest={handleTest}
                                                 saving={saving}
                                                 building={building}
+                                                fileTree={fileTree}
+                                                downloading={downloading}
+                                                testing={testing}
                                             />
                                         )}
                                     </div>
