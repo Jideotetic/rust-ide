@@ -56,7 +56,11 @@ function FileTree({
     }, [isRenaming.showInput]);
 
     if (loadingFiles) {
-        return <p className="text-white p-2">Loading Files...</p>;
+        return (
+            <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e]">
+                <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-10 h-10 animate-spin" />
+            </div>
+        );
     }
 
     if (!fileTree) {
@@ -243,12 +247,19 @@ function FileTree({
 
     return (
         <div
-            onClick={() =>
-                handleActiveEditorTabs(
-                    fileTree.id,
-                    fileTree.name,
-                    fileTree.data
-                )
+            onClick={
+                async () => {
+                    // if (fileNode.type === "file" && fileNode.file) {
+                    const content = await fileTree.file.text(); // read actual text
+                    handleActiveEditorTabs(fileTree.id, fileTree.name, content);
+                    // }
+                }
+                // () =>
+                // handleActiveEditorTabs(
+                //     fileTree.id,
+                //     fileTree.name,
+                //     fileTree.data
+                // )
             }
             onMouseOver={() => setShowOptions(true)}
             onMouseLeave={() => setShowOptions(false)}
