@@ -1,14 +1,18 @@
 /* eslint-disable react/prop-types */
 import { BiFolderOpen } from "react-icons/bi";
 import { FiFilePlus, FiArrowRight } from "react-icons/fi";
-import { buildFileTreeFromInputWebKitDirectory } from "../utils/utils";
+import {
+    buildFileTreeFromInputWebKitDirectory,
+    updateUrlWithProjectId,
+} from "../utils/utils";
+import { useRef } from "react";
 
-function Entry({
-    handleOpenFile,
-    folderInputRef,
-    setFileTree,
-    setLoadingFiles,
-}) {
+function Entry({ handleOpenFile, setFileTree, setLoadingFiles }) {
+    const folderInputRef = useRef();
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
+    const abortControllerRef = useRef(null);
+
     const handleOpenFolder = async () => {
         setLoadingFiles(true);
         alert(
@@ -17,8 +21,10 @@ function Entry({
         folderInputRef.current?.click();
     };
 
-    const handleFolderFromInputChange = (event) => {
+    const handleFolderFromInputChange = async (event) => {
         const files = event.target.files;
+
+        console.log(files);
 
         if (!files || files.length === 0) {
             alert("Load a project with at least one file");
@@ -26,16 +32,51 @@ function Entry({
         }
 
         // Build UI tree
-        const children = buildFileTreeFromInputWebKitDirectory(files);
-        setFileTree({
-            id: Date.now(),
-            type: "folder",
-            name: files[0].webkitRelativePath.split("/")[0],
-            path: "/" + files[0].webkitRelativePath.split("/")[0],
-            children,
-        });
+        const rootName = files[0].webkitRelativePath.split("/")[0];
 
-        setLoadingFiles(false);
+        const treePromise = (async () => {
+            const children = buildFileTreeFromInputWebKitDirectory(files);
+            const fileTree = {
+                id: Date.now(),
+                type: "folder",
+                name: rootName,
+                path: "/" + rootName,
+                children,
+            };
+            setFileTree(fileTree);
+            setLoadingFiles(false); // Immediate UI feedback
+        })();
+
+        const uploadPromise = (async () => {
+            setUploadProgress(0);
+            setIsUploading(true);
+            abortControllerRef.current = new AbortController();
+
+            try {
+                // Create the project metadata
+                const projectInitRes = await fetch("/api/projects", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ files: rootName }),
+                    signal: abortControllerRef.current.signal,
+                });
+
+                if (!projectInitRes.ok)
+                    throw new Error("Failed to sync project...kindly retry");
+                const { projectId } = await projectInitRes.json();
+                updateUrlWithProjectId(projectId);
+
+                // Upload files in batches
+                await uploadFilesInBatches(files, projectId);
+
+                alert(`Project created successfully! ID: ${projectId}`);
+            } catch (err) {
+                console.error("Upload error:", err);
+                alert("Failed to upload project");
+            }
+        })();
+
+        await treePromise;
     };
 
     return (

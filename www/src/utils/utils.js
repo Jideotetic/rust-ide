@@ -43,7 +43,27 @@ export const buildFileTreeFromInputWebKitDirectory = (files) => {
         }
     }
 
-    return children;
+    return sortTreeByTypeAndName(children);
+};
+
+const sortTreeByTypeAndName = (nodes) => {
+    nodes.sort((a, b) => {
+        // Folders first
+        if (a.type === "folder" && b.type !== "folder") return -1;
+        if (a.type !== "folder" && b.type === "folder") return 1;
+
+        // Then sort alphabetically
+        return a.name.localeCompare(b.name);
+    });
+
+    // Recursively sort children if it's a folder
+    for (const node of nodes) {
+        if (node.type === "folder" && node.children) {
+            sortTreeByTypeAndName(node.children);
+        }
+    }
+
+    return nodes;
 };
 
 export const buildFileTreeFromFileSystemApi = async (dirHandle, path = "") => {
@@ -92,22 +112,8 @@ export const buildFileTreeFromFileSystemApi = async (dirHandle, path = "") => {
     return tree;
 };
 
-const handleFileClick = async (fileNode) => {
-    if (fileNode.type !== "file" || !fileNode.file) return;
-
-    try {
-        const content = await fileNode.file.text(); // read text content
-        setFileContent(content);
-        setSelectedFileName(fileNode.name);
-    } catch (err) {
-        console.error("Failed to read file:", err);
-        alert("Failed to read file content");
-    }
-};
-
-async () => {
-    if (fileNode.type === "file" && fileNode.file) {
-        const content = await fileNode.file.text(); // read actual text
-        handleActiveEditorTabs(fileNode.id, fileNode.name, content);
-    }
+export const updateUrlWithProjectId = (projectId) => {
+    const url = new URL(window.location);
+    url.searchParams.set("projectId", projectId);
+    window.history.pushState({}, "", url);
 };

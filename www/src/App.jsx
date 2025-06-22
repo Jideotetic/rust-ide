@@ -7,7 +7,10 @@ import useTree from "./hooks/useTree.js";
 import TabButton from "./components/TabButton.jsx";
 import ActionsDropdown from "./components/ActionsDropDown.jsx";
 import JSZip from "jszip";
-import { buildFileTreeFromFileSystemApi } from "./utils/utils.js";
+import {
+    buildFileTreeFromFileSystemApi,
+    updateUrlWithProjectId,
+} from "./utils/utils.js";
 
 export default function App() {
     const [fileTree, setFileTree] = useState(null);
@@ -27,7 +30,6 @@ export default function App() {
     const [downloading, setDownloading] = useState(false);
     const [testing, setTesting] = useState(false);
     const fileInputRef = useRef();
-    const folderInputRef = useRef();
 
     const loadProject = useCallback(async () => {
         try {
@@ -548,12 +550,6 @@ export default function App() {
         ]
     );
 
-    const updateUrlWithProjectId = async (projectId) => {
-        const url = new URL(window.location);
-        url.searchParams.set("projectId", projectId);
-        window.history.pushState({}, "", url);
-    };
-
     const uploadFilesRecursively = useCallback(
         async (dirHandle, projectId, path = "") => {
             for await (const [name, handle] of dirHandle.entries()) {
@@ -754,7 +750,6 @@ export default function App() {
                 {activeEditorTabs.length === 0 ? (
                     <Entry
                         handleOpenFile={handleOpenFile}
-                        folderInputRef={folderInputRef}
                         setFileTree={setFileTree}
                         setLoadingFiles={setLoadingFiles}
                     />
