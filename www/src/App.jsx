@@ -7,10 +7,6 @@ import useTree from "./hooks/useTree.js";
 import TabButton from "./components/TabButton.jsx";
 import ActionsDropdown from "./components/ActionsDropDown.jsx";
 import JSZip from "jszip";
-import {
-    buildFileTreeFromFileSystemApi,
-    updateUrlWithProjectId,
-} from "./utils/utils.js";
 
 export default function App() {
     const [fileTree, setFileTree] = useState(null);
@@ -29,7 +25,8 @@ export default function App() {
     const [hasBuilt, setHasBuilt] = useState(false);
     const [downloading, setDownloading] = useState(false);
     const [testing, setTesting] = useState(false);
-    const fileInputRef = useRef();
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
 
     const loadProject = useCallback(async () => {
         try {
@@ -591,61 +588,6 @@ export default function App() {
         return params.get("projectId");
     };
 
-    const handleOpenFile = useCallback(async () => {
-        try {
-            const [fileHandle] = await window.showOpenFilePicker();
-            setLoadingFiles(true);
-            const file = await fileHandle.getFile();
-            const text = await file.text();
-
-            const projectRes = await fetch(
-                "https://sorobuild-ide-backend-1.onrender.com/api/projects",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ files: { [file.name]: text } }),
-                }
-            );
-
-            if (!projectRes.ok) throw new Error("Failed to create project");
-
-            const { projectId } = await projectRes.json();
-            updateUrlWithProjectId(projectId);
-
-            // BUILD UI TREE
-            const fileNode = {
-                id: Date.now(),
-                type: "file",
-                name: file.name,
-                path: "/" + file.name,
-                handle: fileHandle,
-                data: text,
-            };
-
-            const root = {
-                id: Date.now() + 1,
-                type: "folder",
-                name: "New Folder",
-                children: [fileNode],
-                handle: null,
-            };
-
-            setFileTree(root);
-            console.log(fileTree);
-            setLoadingFiles(false);
-
-            handleActiveEditorTabs(fileNode.id, fileNode.name, fileNode.data);
-
-            setResult("Project loaded successfully");
-            alert("Project loaded successfully");
-        } catch (err) {
-            console.error("Error opening file:", err);
-            setLoadingFiles(false);
-            setResult(err);
-            alert(err);
-        }
-    }, [handleActiveEditorTabs, fileTree]);
-
     const handleRename = (id, newName) => {
         setFileTree(updateNode(fileTree, id, newName));
         setActiveEditorTabs(
@@ -724,6 +666,11 @@ export default function App() {
 
     return (
         <PanelGroup className="h-full" direction="horizontal">
+            {isUploading && (
+                <div className="text-white fixed bottom-2 right-2 text-sm z-50">
+                    Upload progress: {uploadProgress}%
+                </div>
+            )}
             <Panel
                 collapsedSize={0}
                 collapsible
@@ -749,9 +696,11 @@ export default function App() {
             <Panel>
                 {activeEditorTabs.length === 0 ? (
                     <Entry
-                        handleOpenFile={handleOpenFile}
                         setFileTree={setFileTree}
                         setLoadingFiles={setLoadingFiles}
+                        setUploadProgress={setUploadProgress}
+                        setIsUploading={setIsUploading}
+                        isUploading={isUploading}
                     />
                 ) : (
                     <PanelGroup direction="vertical">
