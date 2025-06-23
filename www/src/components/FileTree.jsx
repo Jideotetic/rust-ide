@@ -247,20 +247,13 @@ function FileTree({
 
     return (
         <div
-            onClick={
-                async () => {
-                    // if (fileNode.type === "file" && fileNode.file) {
-                    const content = await fileTree.file.text(); // read actual text
-                    handleActiveEditorTabs(fileTree.id, fileTree.name, content);
-                    // }
-                }
-                // () =>
-                // handleActiveEditorTabs(
-                //     fileTree.id,
-                //     fileTree.name,
-                //     fileTree.data
-                // )
-            }
+            onClick={async () => {
+                const content = fileTree.file?.text
+                    ? await fileTree.file.text()
+                    : fileTree.data;
+
+                handleActiveEditorTabs(fileTree.id, fileTree.name, content);
+            }}
             onMouseOver={() => setShowOptions(true)}
             onMouseLeave={() => setShowOptions(false)}
             className="relative text-xs flex items-center justify-between select-none cursor-pointer py-1 px-2 pr-1 text-white rounded hover:bg-gray-500"

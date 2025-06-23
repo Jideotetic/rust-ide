@@ -24,6 +24,7 @@ export const buildFileTreeFromInputWebKitDirectory = (files) => {
                         type: "file",
                         name: part,
                         path: currentPath,
+                        fullPath: file.webkitRelativePath,
                         file,
                         handle: file,
                     });
@@ -35,6 +36,7 @@ export const buildFileTreeFromInputWebKitDirectory = (files) => {
                         type: "folder",
                         name: part,
                         path: currentPath,
+                        fullPath: file.webkitRelativePath,
                         children: [],
                     };
                     current.push(existing);
@@ -128,3 +130,18 @@ export async function uploadAsZip(files, projectId, progressCb) {
         alert("Zip upload failed");
     }
 }
+
+export const findFilePathById = (node, id) => {
+    if (node.id === id) {
+        return node.fullPath || node.path || null;
+    }
+
+    if (node.children) {
+        for (const child of node.children) {
+            const result = findFilePathById(child, id);
+            if (result) return result;
+        }
+    }
+
+    return null;
+};

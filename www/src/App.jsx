@@ -7,6 +7,7 @@ import useTree from "./hooks/useTree.js";
 import TabButton from "./components/TabButton.jsx";
 import ActionsDropdown from "./components/ActionsDropDown.jsx";
 import JSZip from "jszip";
+import { findFilePathById, sortTreeByTypeAndName } from "./utils/utils.js";
 
 export default function App() {
     const [fileTree, setFileTree] = useState(null);
@@ -85,6 +86,7 @@ export default function App() {
                                 type: isFile ? "file" : "folder",
                                 name: part,
                                 path: parts.slice(0, index + 1).join("/"),
+                                fullPath: filePath,
                                 data: isFile ? content : undefined,
                                 children: isFile ? undefined : [],
                             };
@@ -96,7 +98,12 @@ export default function App() {
                     });
                 });
 
-                return root.children.length === 1 ? root.children[0] : root;
+                return root.children.length === 1
+                    ? sortTreeByTypeAndName([root.children[0]])[0]
+                    : {
+                          ...root,
+                          children: sortTreeByTypeAndName(root.children),
+                      };
             };
 
             const extractedTree = buildTree(extractedFiles);
@@ -114,6 +121,7 @@ export default function App() {
             alert(message);
             setResult(message);
             setBuilding(false);
+            setLoadingFiles(false);
         }
     }, []);
 
@@ -162,7 +170,7 @@ export default function App() {
 
         try {
             const res = await fetch(
-                `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/files`,
+                `http://localhost:4000/api/projects/${projectId}/files`,
                 {
                     method: "PUT",
                     headers: {
@@ -442,18 +450,18 @@ export default function App() {
         }
     }, [monacoEditor]);
 
-    const findFilePathById = useCallback((node, id) => {
-        if (node.id === id && node.path) return node.path;
+    // const findFilePathById = useCallback((node, id) => {
+    //     if (node.id === id && node.path) return node.path;
 
-        if (node.children) {
-            for (const child of node.children) {
-                const result = findFilePathById(child, id);
-                if (result) return result;
-            }
-        }
+    //     if (node.children) {
+    //         for (const child of node.children) {
+    //             const result = findFilePathById(child, id);
+    //             if (result) return result;
+    //         }
+    //     }
 
-        return null;
-    }, []);
+    //     return null;
+    // }, []);
 
     const handleEditorChange = useCallback((newContent) => {
         setEditorContent(newContent);
@@ -538,7 +546,6 @@ export default function App() {
             editor,
             monacoEditor,
             selectedTabId,
-            findFilePathById,
             fileTree,
             handleEditorChange,
         ]
