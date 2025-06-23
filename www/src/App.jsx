@@ -547,42 +547,6 @@ export default function App() {
         ]
     );
 
-    const uploadFilesRecursively = useCallback(
-        async (dirHandle, projectId, path = "") => {
-            for await (const [name, handle] of dirHandle.entries()) {
-                const currentPath = path ? `${path}/${name}` : name;
-
-                if (handle.kind === "file") {
-                    try {
-                        const file = await handle.getFile();
-                        const content = await file.text();
-
-                        await fetch(
-                            `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/files`,
-                            {
-                                method: "PUT",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    path: currentPath,
-                                    content,
-                                }),
-                            }
-                        );
-                    } catch (error) {
-                        console.error(`Error uploading ${currentPath}:`, error);
-                    }
-                } else if (handle.kind === "directory") {
-                    await uploadFilesRecursively(
-                        handle,
-                        projectId,
-                        currentPath
-                    );
-                }
-            }
-        },
-        []
-    );
-
     const getProjectIdFromUrl = () => {
         const params = new URLSearchParams(window.location.search);
         return params.get("projectId");

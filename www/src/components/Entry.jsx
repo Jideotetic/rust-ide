@@ -6,7 +6,7 @@ import {
     createProjectWithFile,
     readFileAsText,
     updateUrlWithProjectId,
-    uploadInBatches,
+    uploadAsZip,
 } from "../utils/utils";
 import { useRef } from "react";
 
@@ -22,7 +22,7 @@ function Entry({
 
     // const abortControllerRef = useRef(null);
 
-    const handleOpenFolder = async () => {
+    const handleOpenFolder = () => {
         setLoadingFiles(true);
         alert(
             "Reading files from folder… This may take a few seconds for large folders."
@@ -64,39 +64,32 @@ function Entry({
 
                 // File uploading
                 (async () => {
-                    const projectInitRes = await fetch(
-                        "https://sorobuild-ide-backend-1.onrender.com/api/projects/create",
+                    const res = await fetch(
+                        "https://sorobuild-ide-backend.fly.dev/api/projects/create",
                         {
                             method: "POST",
                         }
                     );
 
-                    if (!projectInitRes.ok) {
+                    if (!res.ok) {
                         throw new Error(
                             "Failed to create project...kindly retry"
                         );
                     }
-                    const { projectId } = await projectInitRes.json();
+                    const { projectId } = await res.json();
                     updateUrlWithProjectId(projectId);
 
-                    await uploadInBatches(
-                        files,
-                        projectId,
-                        rootName,
-                        (percent) => setUploadProgress(percent)
-                    );
+                    await uploadAsZip(files, projectId, (percent) => {
+                        setUploadProgress(percent);
+                    });
 
                     alert(`Project created successfully!`);
                     setIsUploading(false);
                 })(),
             ]);
         } catch (err) {
-            if (err.name === "AbortError") {
-                alert("Project creation cancelled");
-            } else {
-                console.error("Failed to create project successfully:", err);
-                alert("Failed to create project successfully...kindly retry");
-            }
+            console.error("Failed to create project successfully:", err);
+            alert("Failed to create project successfully...kindly retry");
             setIsUploading(false);
             setLoadingFiles(false);
         }
