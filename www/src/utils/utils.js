@@ -175,13 +175,16 @@ export const readFileAsText = (file) => {
 };
 
 export const createProjectWithFile = async (filename, content) => {
-    const res = await fetch("http://localhost:4000/api/projects/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            files: { [filename]: content },
-        }),
-    });
+    const res = await fetch(
+        "https://sorobuild-ide-backend-1.onrender.com/api/projects/create",
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                files: { [filename]: content },
+            }),
+        }
+    );
     if (!res.ok) throw new Error("Failed to create project");
     return res.json();
 };
