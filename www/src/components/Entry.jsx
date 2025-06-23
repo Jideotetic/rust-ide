@@ -65,7 +65,7 @@ function Entry({
                 // File uploading
                 (async () => {
                     const res = await fetch(
-                        "https://sorobuild-ide-backend.fly.dev/api/projects/create",
+                        "http://localhost:4000/api/projects/create",
                         {
                             method: "POST",
                         }
@@ -83,7 +83,6 @@ function Entry({
                         setUploadProgress(percent);
                     });
 
-                    alert(`Project created successfully!`);
                     setIsUploading(false);
                 })(),
             ]);

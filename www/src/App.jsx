@@ -15,6 +15,7 @@ export default function App() {
     const [loadingFiles, setLoadingFiles] = useState(false);
     const [editor, setEditor] = useState(null);
     const [loading, setLoading] = useState(true);
+    // eslint-disable-next-line no-unused-vars
     const [editorContent, setEditorContent] = useState("");
     const monacoElementRef = useRef(null);
     const [monacoEditor, setMonacoEditor] = useState(null);
@@ -35,13 +36,12 @@ export default function App() {
             const projectId = getProjectIdFromUrl();
 
             const res = await fetch(
-                `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/download`
+                `http://localhost:4000/api/projects/${projectId}/download`
             );
 
             if (!res.ok) throw new Error("Failed to load project");
 
             const blob = await res.blob();
-            console.log("ZIP raw content (as text)", blob.slice(0, 100));
             const zip = await JSZip.loadAsync(blob);
 
             const extractedFiles = {};
@@ -63,7 +63,7 @@ export default function App() {
                 const root = {
                     id: Date.now(),
                     type: "folder",
-                    name: "New Folder",
+                    name: "",
                     children: [],
                     handle: null,
                 };
@@ -96,13 +96,12 @@ export default function App() {
                     });
                 });
 
-                return root;
+                return root.children.length === 1 ? root.children[0] : root;
             };
 
             const extractedTree = buildTree(extractedFiles);
             setFileTree(extractedTree);
 
-            console.log("Build successful");
             setLoadingFiles(false);
             setResult("Build successful");
             alert("Project loaded successfully");
@@ -117,8 +116,6 @@ export default function App() {
             setBuilding(false);
         }
     }, []);
-
-    console.log(editorContent);
 
     useEffect(() => {
         const projectId = getProjectIdFromUrl();
