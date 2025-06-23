@@ -100,66 +100,6 @@ function Entry({
             setIsUploading(false);
             setLoadingFiles(false);
         }
-
-        // const treePromise = (async () => {
-        //     const children = buildFileTreeFromInputWebKitDirectory(files);
-        //     const fileTree = {
-        //         id: Date.now(),
-        //         type: "folder",
-        //         name: rootName,
-        //         path: "/" + rootName,
-        //         children,
-        //     };
-        //     setFileTree(fileTree);
-        //     setLoadingFiles(false);
-        // })();
-
-        // const uploadPromise = (async () => {
-        //     setUploadProgress(0);
-        //     setIsUploading(true);
-        //     // abortControllerRef.current = new AbortController();
-
-        //     try {
-        //         // Create the project metadata
-        //         const projectInitRes = await fetch(
-        //             "http://localhost:4000/api/projects/create",
-        //             {
-        //                 method: "POST",
-        //                 headers: { "Content-Type": "application/json" },
-        //                 // body: JSON.stringify({ folderName: rootName }),
-        //                 // signal: abortControllerRef.current.signal,
-        //             }
-        //         );
-
-        //         if (!projectInitRes.ok) {
-        //             throw new Error("Failed to create project...kindly retry");
-        //         }
-        //         const { projectId } = await projectInitRes.json();
-        //         updateUrlWithProjectId(projectId);
-
-        //         // Upload files in batches
-        //         await uploadInBatches(files, projectId, rootName, (percent) =>
-        //             setUploadProgress(percent)
-        //         );
-
-        //         alert(`Project created successful!`);
-        //         setIsUploading(false);
-        //     } catch (err) {
-        //         if (err.name === "AbortError") {
-        //             alert("Project creation cancelled");
-        //         } else {
-        //             console.error(
-        //                 "Failed to create project successfully:",
-        //                 err
-        //             );
-        //             alert(
-        //                 "Failed to create project successfully...kindly retry"
-        //             );
-        //         }
-        //     }
-        // })();
-
-        // await treePromise;
     };
 
     const handleOpenFile = async () => {
