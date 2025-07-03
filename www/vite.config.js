@@ -68,4 +68,19 @@ export default defineConfig({
             plugins: [importMetaUrlPlugin],
         },
     },
+    // build: {
+    //     rollupOptions: {
+    //         output: {
+    //             manualChunks: {
+    //                 monaco: ["monaco-editor"],
+    //             },
+    //         },
+    //     },
+    // },
+    worker: {
+        format: "es",
+    },
+    build: {
+        target: "esnext",
+    },
 });
