@@ -12,7 +12,6 @@ function FileTree({
     handleDelete,
     loadingFiles,
     handleRename,
-    handleFileClick,
 }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
@@ -236,7 +235,6 @@ function FileTree({
                                 handleRename={handleRename}
                                 handleActiveEditorTabs={handleActiveEditorTabs}
                                 handleDelete={handleDelete}
-                                handleFileClick={handleFileClick}
                             />
                         ))}
                     </div>
