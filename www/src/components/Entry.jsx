@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { BiFolderOpen } from "react-icons/bi";
 import { FiFilePlus, FiArrowRight } from "react-icons/fi";
@@ -9,9 +10,9 @@ function Entry({ setFileTree, setLoadingFiles }) {
     const fileInputRef = useRef();
 
     const handleOpenFolder = () => {
-        alert(
-            "Reading files from folder… This may take a few seconds for large folders."
-        );
+        // alert(
+        //     "Reading files from folder… This may take a few seconds for large folders."
+        // );
         folderInputRef.current?.click();
     };
 
@@ -57,7 +58,6 @@ function Entry({ setFileTree, setLoadingFiles }) {
         }
 
         try {
-            setLoadingFiles(true);
             const file = files[0];
 
             const tree = {
@@ -77,7 +77,7 @@ function Entry({ setFileTree, setLoadingFiles }) {
             };
 
             setFileTree(tree);
-            setLoadingFiles(false);
+
             alert(`${file.name} file uploaded successfully!`);
         } catch (error) {
             console.error("File upload failed:", error);

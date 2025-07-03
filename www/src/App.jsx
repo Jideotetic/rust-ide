@@ -178,7 +178,11 @@ export default function App() {
                     <h3 className="text-xs uppercase text-white">Explorer</h3>
                 </div>
                 <div className="p-2 overflow-auto h-full">
-                    {!fileTree ? (
+                    {loadingFiles ? (
+                        <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e]">
+                            <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-12 h-12 animate-spin" />
+                        </div>
+                    ) : !fileTree ? (
                         <Entry
                             setFileTree={setFileTree}
                             setLoadingFiles={setLoadingFiles}
@@ -227,18 +231,20 @@ export default function App() {
                                         className="h-full w-full relative pt-2.5"
                                         ref={mountEditor}
                                     >
-                                        <ActionsDropdown
-                                        // handleDownloadProject={
-                                        //     handleDownloadProject
-                                        // }
-                                        // handleBuild={handleBuild}
-                                        // handleTest={handleTest}
-                                        // saving={saving}
-                                        // building={building}
-                                        // fileTree={fileTree}
-                                        // downloading={downloading}
-                                        // testing={testing}
-                                        />
+                                        {fileTree && (
+                                            <ActionsDropdown
+                                            // handleDownloadProject={
+                                            //     handleDownloadProject
+                                            // }
+                                            // handleBuild={handleBuild}
+                                            // handleTest={handleTest}
+                                            // saving={saving}
+                                            // building={building}
+                                            // fileTree={fileTree}
+                                            // downloading={downloading}
+                                            // testing={testing}
+                                            />
+                                        )}
                                     </div>
                                 </Panel>
                                 <PanelResizeHandle className="w-1 bg-black" />
