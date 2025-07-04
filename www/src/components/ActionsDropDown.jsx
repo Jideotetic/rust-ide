@@ -4,6 +4,7 @@ import { GoKebabHorizontal } from "react-icons/go";
 
 // Replace your current format button with this dropdown component
 const ActionsDropdown = ({
+    handleSaveFile,
     handleDownloadProject,
     handleBuild,
     handleTest,
@@ -44,6 +45,9 @@ const ActionsDropdown = ({
                 break;
             case "build":
                 handleBuild();
+                break;
+            case "save":
+                handleSaveFile();
                 break;
             default:
                 break;
@@ -92,6 +96,12 @@ const ActionsDropdown = ({
                                 className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
                             >
                                 Build
+                            </button>
+                            <button
+                                onClick={() => handleAction("save")}
+                                className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
+                            >
+                                Save
                             </button>
                         </div>
                     )}

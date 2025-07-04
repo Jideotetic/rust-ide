@@ -1,41 +1,41 @@
 import {
-	WebSocketMessageReader,
-	WebSocketMessageWriter,
-	toSocket,
+    WebSocketMessageReader,
+    WebSocketMessageWriter,
+    toSocket,
 } from "vscode-ws-jsonrpc";
 import { CloseAction, ErrorAction } from "vscode-languageclient";
 import { MonacoLanguageClient } from "monaco-languageclient";
 
-const LS_WS_URL = "ws://localhost:30002/rust-analyzer";
+const LS_WS_URL = "https://sorobuild-ide-backend-1.onrender.com/rust-analyzer";
 export async function connectToLs() {
-	return new Promise((resolve, reject) => {
-		const webSocket = new WebSocket(LS_WS_URL);
+    return new Promise((resolve, reject) => {
+        const webSocket = new WebSocket(LS_WS_URL);
 
-		webSocket.onopen = () => {
-			console.log("LS WebSocket connection Open");
-			const socket = toSocket(webSocket);
-			const reader = new WebSocketMessageReader(socket);
-			const writer = new WebSocketMessageWriter(socket);
-			const languageClient = new MonacoLanguageClient({
-				id: "rust",
-				name: `Rust Language Client`,
-				clientOptions: {
-					documentSelector: ["rust"],
-					errorHandler: {
-						error: () => ({ action: ErrorAction.Continue }),
-						closed: () => ({ action: CloseAction.DoNotRestart }),
-					},
-				},
-				messageTransports: { reader, writer },
-			});
+        webSocket.onopen = () => {
+            console.log("LS WebSocket connection Open");
+            const socket = toSocket(webSocket);
+            const reader = new WebSocketMessageReader(socket);
+            const writer = new WebSocketMessageWriter(socket);
+            const languageClient = new MonacoLanguageClient({
+                id: "rust",
+                name: `Rust Language Client`,
+                clientOptions: {
+                    documentSelector: ["rust"],
+                    errorHandler: {
+                        error: () => ({ action: ErrorAction.Continue }),
+                        closed: () => ({ action: CloseAction.DoNotRestart }),
+                    },
+                },
+                messageTransports: { reader, writer },
+            });
 
-			languageClient.start();
-			resolve(languageClient);
-		};
+            languageClient.start();
+            resolve(languageClient);
+        };
 
-		webSocket.onerror = (error) => {
-			console.log("LS WebSocket connection error:", error);
-			reject(error);
-		};
-	});
+        webSocket.onerror = (error) => {
+            console.log("LS WebSocket connection error:", error);
+            reject(error);
+        };
+    });
 }

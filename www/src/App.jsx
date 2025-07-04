@@ -5,7 +5,6 @@ import FileTree from "./components/FileTree.jsx";
 import useTree from "./hooks/useTree.js";
 import TabButton from "./components/TabButton.jsx";
 import ActionsDropdown from "./components/ActionsDropDown.jsx";
-// import JSZip from "jszip";
 import {
     findFileNodeById,
     findFilePathById,
@@ -13,16 +12,17 @@ import {
     sortTreeByTypeAndName,
 } from "./utils/utils.js";
 import * as monaco from "monaco-editor";
+import * as vscode from "vscode";
 
 const UNTITLED_ID = "62d83479-32c6-45db-bc52-054482a5fa38";
 
 export default function App() {
     const [activeTabs, setActiveTabs] = useState([
         {
-            content: "",
+            content: `fn main() {\n println!("Hello, World!" );\n}`,
             id: UNTITLED_ID,
-            name: "untitled",
-            path: "untitled",
+            name: "main.rs",
+            path: "main.rs",
         },
     ]);
     const [selectedTabId, setSelectedTabId] = useState(UNTITLED_ID);
@@ -31,12 +31,15 @@ export default function App() {
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
 
-    const mountEditor = useCallback((node) => {
+    const mountEditor = useCallback(async (node) => {
         if (!node || editorRef.current) return;
 
         editorRef.current = monaco.editor.create(node, {
-            value: "",
-            language: "rust",
+            model: monaco.editor.createModel(
+                ``,
+                "rust",
+                vscode.Uri.file(`app/src/main.rs`)
+            ),
             theme: "vs-dark",
             automaticLayout: true,
         });
@@ -133,21 +136,25 @@ export default function App() {
         }
 
         const fileNode = findFileNodeById(fileTree, tabId);
-        let content = tabData;
+        let content = tabData ?? "";
 
-        if (fileNode && fileNode.file) {
-            try {
-                content = await readFileAsText(fileNode.file);
-            } catch (error) {
-                console.error("Error reading file:", error);
-                content = "Error loading file content";
+        if (fileNode) {
+            if (fileNode.data) {
+                content = fileNode.data; // ✅ Use saved in-memory content
+            } else if (fileNode.file) {
+                try {
+                    content = await readFileAsText(fileNode.file);
+                } catch (error) {
+                    console.error("Error reading file:", error);
+                    content = "Error loading file content";
+                }
             }
         }
 
         const newTab = {
             id: tabId,
             name: tabName,
-            content: tabData,
+            content,
             path: fileTree ? findFilePathById(fileTree, tabId) : `/${tabName}`,
         };
 
@@ -165,6 +172,41 @@ export default function App() {
             editorRef.current.setValue(content);
         }
     };
+
+    const handleSaveFile = useCallback(() => {
+        if (!editorRef.current || !selectedTabId || !fileTree) return;
+
+        const updatedContent = editorRef.current.getValue();
+
+        // Update active tab content
+        setActiveTabs((tabs) =>
+            tabs.map((tab) =>
+                tab.id === selectedTabId
+                    ? { ...tab, content: updatedContent }
+                    : tab
+            )
+        );
+
+        // Update fileTree
+        const updateFileContent = (node) => {
+            if (!node) return null;
+            if (node.id === selectedTabId && node.type === "file") {
+                return { ...node, data: updatedContent };
+            }
+            if (node.children) {
+                return {
+                    ...node,
+                    children: node.children.map(updateFileContent),
+                };
+            }
+            return node;
+        };
+
+        const updatedTree = updateFileContent(fileTree);
+        setFileTree(updatedTree);
+
+        console.log(`Saved content for file ID: ${selectedTabId}`);
+    }, [editorRef, selectedTabId, fileTree]);
 
     return (
         <PanelGroup className="h-full" direction="horizontal">
@@ -233,16 +275,17 @@ export default function App() {
                                     >
                                         {fileTree && (
                                             <ActionsDropdown
-                                            // handleDownloadProject={
-                                            //     handleDownloadProject
-                                            // }
-                                            // handleBuild={handleBuild}
-                                            // handleTest={handleTest}
-                                            // saving={saving}
-                                            // building={building}
-                                            // fileTree={fileTree}
-                                            // downloading={downloading}
-                                            // testing={testing}
+                                                handleSaveFile={handleSaveFile}
+                                                // handleDownloadProject={
+                                                //     handleDownloadProject
+                                                // }
+                                                // handleBuild={handleBuild}
+                                                // handleTest={handleTest}
+                                                // saving={saving}
+                                                // building={building}
+                                                // fileTree={fileTree}
+                                                // downloading={downloading}
+                                                // testing={testing}
                                             />
                                         )}
                                     </div>

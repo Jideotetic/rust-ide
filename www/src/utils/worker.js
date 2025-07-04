@@ -1,11 +1,11 @@
 import "@codingame/monaco-vscode-rust-default-extension";
 import "@codingame/monaco-vscode-theme-defaults-default-extension";
-import "@codingame/monaco-vscode-javascript-default-extension";
-import "@codingame/monaco-vscode-json-default-extension";
 
 import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import textMateWorker from "@codingame/monaco-vscode-textmate-service-override/worker?worker";
 
+import * as monaco from "monaco-editor";
+import * as vscode from "vscode";
 import { initialize } from "@codingame/monaco-vscode-api";
 import getConfigurationServiceOverride, {
     updateUserConfiguration,
@@ -19,13 +19,16 @@ import getExtensionServiceOverride from "@codingame/monaco-vscode-extensions-ser
 import getFilesServiceOverride from "@codingame/monaco-vscode-files-service-override";
 import getQuickAccessServiceOverride from "@codingame/monaco-vscode-quickaccess-service-override";
 
+import "vscode/localExtensionHost";
+import { connectToLs } from "./lsp-client";
+
 const workerLoaders = {
     TextEditorWorker: () => new editorWorker(),
     TextMateWorker: () => new textMateWorker(),
 };
 
 window.MonacoEnvironment = {
-    getWorker: function (_moduleId, label) {
+    getWorker: (_moduleId, label) => {
         console.log("getWorker", _moduleId, label);
         const workerFactory = workerLoaders[label];
         if (workerFactory != null) {
@@ -50,3 +53,25 @@ await initialize({
 await updateUserConfiguration(`{
   "workbench.colorTheme": "Default Dark Modern"
 }`);
+
+const rustUri = vscode.Uri.file("main.rs");
+monaco.editor.createModel("fn main() {}", "rust", rustUri);
+
+monaco.languages.onLanguage("rust", async () => {
+    console.log(
+        "Rust language registered!",
+        monaco.languages.getLanguages().map((l) => l.id)
+    );
+
+    await connectToLs();
+
+    console.log(
+        "Languages after LSP ready:",
+        monaco.languages.getLanguages().map((l) => l.id)
+    );
+
+    console.log(
+        "Loaded extensions:",
+        vscode.extensions.all.map((ext) => ext.id)
+    );
+});
