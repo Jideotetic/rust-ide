@@ -6,7 +6,7 @@ import {
 import { CloseAction, ErrorAction } from "vscode-languageclient";
 import { MonacoLanguageClient } from "monaco-languageclient";
 
-const LS_WS_URL = "http://154.53.44.134:3000/rust-analyzer";
+const LS_WS_URL = "https://ide.sorobuild.io/rust-analyzer";
 export async function connectToLs() {
     return new Promise((resolve, reject) => {
         const webSocket = new WebSocket(LS_WS_URL);
