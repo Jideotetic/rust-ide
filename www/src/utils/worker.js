@@ -5,7 +5,6 @@ import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import textMateWorker from "@codingame/monaco-vscode-textmate-service-override/worker?worker";
 
 import * as monaco from "monaco-editor";
-import * as vscode from "vscode";
 import { initialize } from "@codingame/monaco-vscode-api";
 import getConfigurationServiceOverride, {
     updateUserConfiguration,
@@ -54,14 +53,7 @@ await updateUserConfiguration(`{
   "workbench.colorTheme": "Default Dark Modern"
 }`);
 
-const rustUri = vscode.Uri.file("main.rs");
-monaco.editor.createModel("fn main() {}", "rust", rustUri);
-
 monaco.languages.onLanguage("rust", async () => {
-    console.log(
-        "Rust language registered!",
-        monaco.languages.getLanguages().map((l) => l.id)
-    );
-
+    console.log("Rust language registered → starting LSP");
     await connectToLs();
 });

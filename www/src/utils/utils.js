@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import { v4 as uuidv4 } from "uuid";
 export const generateId = () => uuidv4();
+import * as monaco from "monaco-editor";
 
 export const buildFileTreeFromInputWebKitDirectory = (files) => {
     const children = [];
@@ -168,6 +169,9 @@ export const findFileNodeById = (node, id) => {
 
     return null;
 };
+
+export const getRustModel = (uri) =>
+    monaco.editor.getModel(uri) ?? monaco.editor.createModel("", "rust", uri);
 
 // const loadProject = useCallback(async () => {
 //     try {
