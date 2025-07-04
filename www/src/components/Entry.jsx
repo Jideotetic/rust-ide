@@ -1,32 +1,18 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { BiFolderOpen } from "react-icons/bi";
 import { FiFilePlus, FiArrowRight } from "react-icons/fi";
-import {
-    buildFileTreeFromInputWebKitDirectory,
-    createProjectWithFile,
-    readFileAsText,
-    updateUrlWithProjectId,
-    uploadAsZip,
-} from "../utils/utils";
 import { useRef } from "react";
+import { buildFileTreeFromInputWebKitDirectory } from "../utils/utils";
 
-function Entry({
-    setFileTree,
-    setLoadingFiles,
-    setUploadProgress,
-    setIsUploading,
-    isUploading,
-}) {
+function Entry({ setFileTree, setLoadingFiles }) {
     const folderInputRef = useRef();
     const fileInputRef = useRef();
 
-    // const abortControllerRef = useRef(null);
-
     const handleOpenFolder = () => {
-        setLoadingFiles(true);
-        alert(
-            "Reading files from folder… This may take a few seconds for large folders."
-        );
+        // alert(
+        //     "Reading files from folder… This may take a few seconds for large folders."
+        // );
         folderInputRef.current?.click();
     };
 
@@ -38,64 +24,28 @@ function Entry({
             return;
         }
 
-        // Build UI tree
         const rootName = files[0].webkitRelativePath.split("/")[0];
 
-        setLoadingFiles(true);
-        setUploadProgress(0);
-        setIsUploading(true);
-
         try {
-            await Promise.all([
-                // Tree building
-                (async () => {
-                    const children =
-                        buildFileTreeFromInputWebKitDirectory(files);
-                    const fileTree = {
-                        id: Date.now(),
-                        type: "folder",
-                        name: rootName,
-                        path: "/" + rootName,
-                        children,
-                    };
-                    setFileTree(fileTree);
-                    setLoadingFiles(false);
-                })(),
+            const children = buildFileTreeFromInputWebKitDirectory(files);
+            const tree = {
+                id: Date.now(),
+                type: "folder",
+                name: rootName,
+                path: "/" + rootName,
+                children,
+            };
 
-                // File uploading
-                (async () => {
-                    const res = await fetch(
-                        "http://localhost:4000/api/projects/create",
-                        {
-                            method: "POST",
-                        }
-                    );
+            setFileTree(tree);
 
-                    if (!res.ok) {
-                        throw new Error(
-                            "Failed to create project...kindly retry"
-                        );
-                    }
-                    const { projectId } = await res.json();
-                    updateUrlWithProjectId(projectId);
-
-                    await uploadAsZip(files, projectId, (percent) => {
-                        setUploadProgress(percent);
-                    });
-
-                    setIsUploading(false);
-                })(),
-            ]);
+            alert(`${rootName} folder uploaded successfully`);
         } catch (err) {
-            console.error("Failed to create project successfully:", err);
-            alert("Failed to create project successfully...kindly retry");
-            setIsUploading(false);
-            setLoadingFiles(false);
+            console.error("Folder upload failed:", err);
+            alert(`Folder upload failed: ${err.message}`);
         }
     };
 
     const handleOpenFile = async () => {
-        setLoadingFiles(true);
         fileInputRef.current?.click();
     };
 
@@ -107,19 +57,10 @@ function Entry({
             return;
         }
 
-        setLoadingFiles(false);
-        setIsUploading(true);
-        setUploadProgress(0);
-
         try {
             const file = files[0];
-            const content = await readFileAsText(file);
-            const { projectId } = await createProjectWithFile(
-                file.name,
-                content
-            );
 
-            const fileTree = {
+            const tree = {
                 id: Date.now(),
                 type: "folder",
                 name: "New Folder",
@@ -135,43 +76,36 @@ function Entry({
                 ],
             };
 
-            setFileTree(fileTree);
-            updateUrlWithProjectId(projectId);
-            alert("File uploaded successfully!");
+            setFileTree(tree);
+
+            alert(`${file.name} file uploaded successfully!`);
         } catch (error) {
             console.error("File upload failed:", error);
-            alert(`Failed to upload file: ${error.message}`);
-        } finally {
-            setLoadingFiles(false);
-            setIsUploading(false);
+            alert(`File upload failed: ${error.message}`);
         }
     };
-
-    // const cancel = () => abortControllerRef.current.abort();
 
     return (
         <div className="w-full h-full flex justify-center items-center flex-col gap-8">
             <div className="flex flex-col justify-center items-center gap-2 text-sm text-white">
                 <div className="flex items-center justify-around px-4 py-2 gap-4">
-                    <FiFilePlus className="text-8xl" />
+                    <FiFilePlus className="text-7xl" />
                     <FiArrowRight className="text-4xl" />
-                    <BiFolderOpen className="text-8xl" />
+                    <BiFolderOpen className="text-7xl" />
                 </div>
-
-                {/* <button onClick={cancel}>Cancel Upload</button> */}
 
                 <p>
                     Open a new{" "}
                     <button
                         onClick={handleOpenFile}
                         className="text-blue-500 cursor-pointer"
-                        disabled={isUploading}
                     >
                         file
                     </button>{" "}
                     <input
                         type="file"
                         ref={fileInputRef}
+                        multiple
                         className="hidden"
                         onChange={handleFileFromInputChange}
                     />
@@ -179,7 +113,6 @@ function Entry({
                     <button
                         onClick={handleOpenFolder}
                         className="text-blue-500 cursor-pointer"
-                        disabled={isUploading}
                     >
                         folder
                     </button>{" "}

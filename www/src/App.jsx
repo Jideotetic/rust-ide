@@ -1,558 +1,61 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { start } from "./utils/worker";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import Entry from "./components/Entry.jsx";
 import FileTree from "./components/FileTree.jsx";
 import useTree from "./hooks/useTree.js";
 import TabButton from "./components/TabButton.jsx";
 import ActionsDropdown from "./components/ActionsDropDown.jsx";
-import JSZip from "jszip";
-import { findFilePathById, sortTreeByTypeAndName } from "./utils/utils.js";
+import {
+    findFileNodeById,
+    findFilePathById,
+    readFileAsText,
+    sortTreeByTypeAndName,
+} from "./utils/utils.js";
+import * as monaco from "monaco-editor";
+import * as vscode from "vscode";
+
+const UNTITLED_ID = "62d83479-32c6-45db-bc52-054482a5fa38";
 
 export default function App() {
-    const [fileTree, setFileTree] = useState(null);
-    const [activeEditorTabs, setActiveEditorTabs] = useState([]);
-    const [selectedTabId, setSelectedTabId] = useState(null);
-    const [loadingFiles, setLoadingFiles] = useState(false);
-    const [editor, setEditor] = useState(null);
-    const [loading, setLoading] = useState(true);
-    // eslint-disable-next-line no-unused-vars
-    const [editorContent, setEditorContent] = useState("");
-    const monacoElementRef = useRef(null);
-    const [monacoEditor, setMonacoEditor] = useState(null);
-    const [saving, setSaving] = useState(false);
-    const [building, setBuilding] = useState(false);
-    const { insertNode, deleteNode, updateNode } = useTree();
-    const [result, setResult] = useState("");
-    const [hasBuilt, setHasBuilt] = useState(false);
-    const [downloading, setDownloading] = useState(false);
-    const [testing, setTesting] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [isUploading, setIsUploading] = useState(false);
-
-    const loadProject = useCallback(async () => {
-        try {
-            setLoadingFiles(true);
-
-            const projectId = getProjectIdFromUrl();
-
-            const res = await fetch(
-                `http://localhost:4000/api/projects/${projectId}/download`
-            );
-
-            if (!res.ok) throw new Error("Failed to load project");
-
-            const blob = await res.blob();
-            const zip = await JSZip.loadAsync(blob);
-
-            const extractedFiles = {};
-            await Promise.all(
-                Object.keys(zip.files).map(async (filename) => {
-                    const file = zip.files[filename];
-                    if (!file.dir) {
-                        const content = await file.async("string");
-                        const cleanPath = filename.replace(
-                            new RegExp(`^${projectId}/?`),
-                            ""
-                        );
-                        extractedFiles[cleanPath] = content;
-                    }
-                })
-            );
-
-            const buildTree = (files) => {
-                const root = {
-                    id: Date.now(),
-                    type: "folder",
-                    name: "",
-                    children: [],
-                    handle: null,
-                };
-
-                Object.entries(files).forEach(([filePath, content]) => {
-                    const parts = filePath.split("/").filter(Boolean);
-                    let currentLevel = root.children;
-
-                    parts.forEach((part, index) => {
-                        const existing = currentLevel.find(
-                            (item) => item.name === part
-                        );
-                        if (existing) {
-                            currentLevel = existing.children || [];
-                        } else {
-                            const isFile = index === parts.length - 1;
-                            const newNode = {
-                                id: `${projectId}-${filePath}-${index}`,
-                                type: isFile ? "file" : "folder",
-                                name: part,
-                                path: parts.slice(0, index + 1).join("/"),
-                                fullPath: filePath,
-                                data: isFile ? content : undefined,
-                                children: isFile ? undefined : [],
-                            };
-                            currentLevel.push(newNode);
-                            if (!isFile) {
-                                currentLevel = newNode.children;
-                            }
-                        }
-                    });
-                });
-
-                return root.children.length === 1
-                    ? sortTreeByTypeAndName([root.children[0]])[0]
-                    : {
-                          ...root,
-                          children: sortTreeByTypeAndName(root.children),
-                      };
-            };
-
-            const extractedTree = buildTree(extractedFiles);
-            setFileTree(extractedTree);
-
-            setLoadingFiles(false);
-            setResult("Build successful");
-            alert("Project loaded successfully");
-        } catch (error) {
-            console.error("Error compiling contract:", error);
-
-            const message =
-                error instanceof Error ? error.message : JSON.stringify(error);
-
-            alert(message);
-            setResult(message);
-            setBuilding(false);
-            setLoadingFiles(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        const projectId = getProjectIdFromUrl();
-        if (projectId) {
-            loadProject(projectId);
-        }
-    }, [loadProject]);
-
-    useEffect(() => {
-        if (!monacoEditor || !selectedTabId) {
-            return;
-        }
-
-        const activeFile = activeEditorTabs.find(
-            (tab) => tab.id === selectedTabId
-        );
-        if (activeFile) {
-            const currentContent = monacoEditor.getValue();
-            if (currentContent !== activeFile.content) {
-                monacoEditor.setValue(activeFile.content || "");
-                setEditorContent(activeFile.content || "");
-            }
-        }
-    }, [selectedTabId, activeEditorTabs, monacoEditor]);
-
-    const handleSave = useCallback(async () => {
-        setSaving(true);
-        if (!selectedTabId || !monacoEditor || loadingFiles) return;
-
-        const projectId = getProjectIdFromUrl();
-
-        const content = monacoEditor.getValue();
-        setEditorContent(content);
-
-        const activeFile = activeEditorTabs.find(
-            (tab) => tab.id === selectedTabId
-        );
-        if (!activeFile || !activeFile.path) {
-            console.log("Missing file path:", activeFile);
-            alert("File path not found. Cannot save.");
-            setSaving(false);
-            return;
-        }
-
-        try {
-            const res = await fetch(
-                `http://localhost:4000/api/projects/${projectId}/save`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        path: activeFile.path,
-                        content,
-                    }),
-                }
-            );
-
-            if (!res.ok) {
-                throw new Error("Failed to save file.");
-            }
-
-            const result = await res.json();
-            const formattedContent = result.content;
-
-            // Update the Monaco editor and state with formatted content
-            monacoEditor.setValue(formattedContent);
-            setEditorContent(formattedContent);
-
-            setActiveEditorTabs((tabs) =>
-                tabs.map((tab) =>
-                    tab.id === selectedTabId
-                        ? { ...tab, content: formattedContent }
-                        : tab
-                )
-            );
-        } catch (error) {
-            console.error("Save error:", error);
-            alert("Failed to save file.");
-        } finally {
-            setSaving(false);
-        }
-    }, [selectedTabId, monacoEditor, activeEditorTabs, loadingFiles]);
-
-    useEffect(() => {
-        const handleBeforeUnload = (e) => {
-            if (hasBuilt) {
-                e.preventDefault();
-                e.returnValue =
-                    "You have unsaved changes. Are you sure you want to leave?";
-                return e.returnValue;
-            }
-        };
-
-        window.addEventListener("beforeunload", handleBeforeUnload);
-        return () => {
-            window.removeEventListener("beforeunload", handleBeforeUnload);
-        };
-    }, [hasBuilt]);
-
-    // useEffect(() => {
-    //     const handleRouteChange = () => {
-    //         if (
-    //             hasUnsavedChanges &&
-    //             !window.confirm(
-    //                 "You have unsaved changes. Are you sure you want to leave?"
-    //             )
-    //         ) {
-    //             throw "Route change aborted by user";
-    //         }
-    //     };
-
-    //     // If using React Router:
-    //     // const unblock = history.block(handleRouteChange);
-
-    //     // For general navigation:
-    //     window.addEventListener("popstate", handleRouteChange);
-
-    //     return () => {
-    //         // if (unblock) unblock();
-    //         window.removeEventListener("popstate", handleRouteChange);
-    //     };
-    // }, [hasUnsavedChanges]);
-
-    useEffect(() => {
-        const handleKeyPress = (event) => {
-            if (
-                !loadingFiles &&
-                (event.ctrlKey || event.metaKey) &&
-                (event.key === "s" || event.key === "S")
-            ) {
-                event.preventDefault();
-                handleSave();
-            }
-        };
-
-        document.addEventListener("keydown", handleKeyPress);
-
-        return () => {
-            document.removeEventListener("keydown", handleKeyPress);
-        };
-    }, [handleSave, loadingFiles]);
-
-    const generateZipFromFileTree = useCallback(async () => {
-        const zip = new JSZip();
-
-        // Recursive function to add files to ZIP
-        const addFilesToZip = (node, currentPath = "") => {
-            const nodePath = currentPath
-                ? `${currentPath}/${node.name}`
-                : node.name;
-
-            if (node.type === "file") {
-                zip.file(nodePath, node.data || "");
-            } else if (node.children) {
-                node.children.forEach((child) =>
-                    addFilesToZip(child, nodePath)
-                );
-            }
-        };
-
-        if (fileTree) {
-            addFilesToZip(fileTree);
-            return await zip.generateAsync({ type: "blob" });
-        }
-        return null;
-    }, [fileTree]);
-
-    const handleDownloadProject = useCallback(async () => {
-        try {
-            setDownloading(true);
-            const projectId = getProjectIdFromUrl() || "project";
-            const zipBlob = await generateZipFromFileTree();
-
-            if (!zipBlob) {
-                throw new Error("No files to download");
-            }
-
-            const url = window.URL.createObjectURL(zipBlob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${projectId}-${new Date()
-                .toISOString()
-                .slice(0, 10)}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-            setDownloading(false);
-        } catch (error) {
-            console.error("Download failed:", error);
-            alert("Failed to create download: " + error.message);
-            setDownloading(false);
-        }
-    }, [generateZipFromFileTree]);
-
-    const handleBuild = useCallback(async () => {
-        console.log("Building contract...");
-
-        if (!monacoEditor) return;
-
-        const projectId = getProjectIdFromUrl();
-
-        setBuilding(true);
-        try {
-            const res = await fetch(
-                `http://localhost:4000/api/projects/${projectId}/build`,
-                {
-                    method: "POST",
-                }
-            );
-
-            if (!res.ok) {
-                throw new Error(await res.text());
-            }
-
-            const blob = await res.blob();
-            const zip = await JSZip.loadAsync(blob);
-
-            const extractedFiles = {};
-            await Promise.all(
-                Object.keys(zip.files).map(async (filename) => {
-                    const file = zip.files[filename];
-                    if (!file.dir) {
-                        const content = await file.async("string");
-                        const cleanPath = filename.replace(
-                            new RegExp(`^${projectId}/?`),
-                            ""
-                        );
-                        extractedFiles[cleanPath] = content;
-                    }
-                })
-            );
-
-            const buildTree = (files) => {
-                const root = {
-                    id: Date.now(),
-                    type: "folder",
-                    name: "",
-                    children: [],
-                    handle: null,
-                };
-
-                Object.entries(files).forEach(([filePath, content]) => {
-                    const parts = filePath.split("/").filter(Boolean);
-                    let currentLevel = root.children;
-
-                    parts.forEach((part, index) => {
-                        const existing = currentLevel.find(
-                            (item) => item.name === part
-                        );
-                        if (existing) {
-                            currentLevel = existing.children || [];
-                        } else {
-                            const isFile = index === parts.length - 1;
-                            const newNode = {
-                                id: `${projectId}-${filePath}-${index}`,
-                                type: isFile ? "file" : "folder",
-                                name: part,
-                                path: parts.slice(0, index + 1).join("/"),
-                                fullPath: filePath,
-                                data: isFile ? content : undefined,
-                                children: isFile ? undefined : [],
-                            };
-                            currentLevel.push(newNode);
-                            if (!isFile) {
-                                currentLevel = newNode.children;
-                            }
-                        }
-                    });
-                });
-
-                return root.children.length === 1
-                    ? sortTreeByTypeAndName([root.children[0]])[0]
-                    : {
-                          ...root,
-                          children: sortTreeByTypeAndName(root.children),
-                      };
-            };
-
-            const extractedTree = buildTree(extractedFiles);
-            setFileTree(extractedTree);
-
-            // if (!result.success) {
-            //     throw new Error(result.error || "Compilation failed");
-            // }
-
-            alert("Build successful");
-            setBuilding(false);
-            setResult("Build successful");
-            setHasBuilt(true);
-        } catch (err) {
-            console.error("Error compiling contract:", err);
-
-            const message =
-                err instanceof Error ? err.message : JSON.stringify(err);
-
-            alert(message);
-            setResult(message);
-            setBuilding(false);
-        }
-    }, [monacoEditor]);
-
-    const handleTest = useCallback(async () => {
-        setTesting(true);
-        if (!monacoEditor) return;
-
-        const projectId = getProjectIdFromUrl();
-
-        try {
-            const res = await fetch(
-                `http://localhost:4000/api/projects/${projectId}/test`,
-                {
-                    method: "POST",
-                }
-            );
-
-            if (!res.ok) throw new Error("Failed to run tests");
-
-            const testResults = await res.json();
-
-            alert(testResults.output);
-            setTesting(false);
-            setResult(testResults.output);
-        } catch (err) {
-            console.error("Error running tests:", err);
-            alert("Error running tests: " + err.message);
-            setTesting(false);
-        }
-    }, [monacoEditor]);
-
-    const handleEditorChange = useCallback((newContent) => {
-        setEditorContent(newContent);
-    }, []);
-
-    const handleActiveEditorTabs = useCallback(
-        async (tabId, tabName, tabData) => {
-            if (monacoEditor && selectedTabId) {
-                const currentContent = monacoEditor.getValue();
-                setActiveEditorTabs((tabs) =>
-                    tabs.map((tab) =>
-                        tab.id === selectedTabId
-                            ? { ...tab, content: currentContent }
-                            : tab
-                    )
-                );
-            }
-
-            const newTab = {
-                id: tabId,
-                name: tabName,
-                content: tabData,
-                path: fileTree
-                    ? findFilePathById(fileTree, tabId)
-                    : `/${tabName}`,
-            };
-
-            const isAlreadyOpened = activeEditorTabs.some(
-                (activeTab) => activeTab.id === tabId
-            );
-
-            if (!isAlreadyOpened) {
-                setActiveEditorTabs([...activeEditorTabs, newTab]);
-            }
-
-            setSelectedTabId(tabId);
-
-            if (!monacoElementRef.current) {
-                const waitForRef = () => {
-                    return new Promise((resolve) => {
-                        const check = () => {
-                            if (monacoElementRef.current) {
-                                resolve();
-                            } else {
-                                requestAnimationFrame(check);
-                            }
-                        };
-                        check();
-                    });
-                };
-
-                await waitForRef();
-            }
-
-            if (!editor) {
-                try {
-                    const { myEditor, model } = await start(
-                        monacoElementRef,
-                        handleEditorChange
-                    );
-                    setEditor(myEditor);
-                    setMonacoEditor(model);
-
-                    model.setValue(tabData || "");
-                    setEditorContent(tabData || "");
-                } catch (error) {
-                    console.error("Editor initialization failed:", error);
-                } finally {
-                    setLoading(false);
-                }
-            } else if (tabData) {
-                const currentTab = activeEditorTabs.find(
-                    (tab) => tab.id === tabId
-                );
-                const contentToShow = currentTab?.content || tabData || "";
-                monacoEditor.setValue(contentToShow);
-                setEditorContent(contentToShow);
-            }
+    const [activeTabs, setActiveTabs] = useState([
+        {
+            content: `fn main() {\n println!("Hello, World!" );\n}`,
+            id: UNTITLED_ID,
+            name: "main.rs",
+            path: "main.rs",
         },
-        [
-            activeEditorTabs,
-            editor,
-            monacoEditor,
-            selectedTabId,
-            fileTree,
-            handleEditorChange,
-        ]
-    );
+    ]);
+    const [selectedTabId, setSelectedTabId] = useState(UNTITLED_ID);
+    const [fileTree, setFileTree] = useState(null);
+    const [loadingFiles, setLoadingFiles] = useState(false);
+    const editorRef = useRef(null);
+    const { insertNode, deleteNode, updateNode } = useTree();
 
-    const getProjectIdFromUrl = () => {
-        const params = new URLSearchParams(window.location.search);
-        return params.get("projectId");
-    };
+    const mountEditor = useCallback(async (node) => {
+        if (!node || editorRef.current) return;
+
+        editorRef.current = monaco.editor.create(node, {
+            model: monaco.editor.createModel(
+                ``,
+                "rust",
+                vscode.Uri.file(`app/src/main.rs`)
+            ),
+            theme: "vs-dark",
+            automaticLayout: true,
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!editorRef.current) return;
+
+        const tab = activeTabs.find((t) => t.id === selectedTabId);
+        if (tab) editorRef.current.setValue(tab.content ?? "");
+    }, [selectedTabId, activeTabs]);
 
     const handleRename = (id, newName) => {
         setFileTree(updateNode(fileTree, id, newName));
-        setActiveEditorTabs(
-            activeEditorTabs.map((tab) =>
+        setActiveTabs(
+            activeTabs.map((tab) =>
                 tab.id === id ? { ...tab, name: newName } : tab
             )
         );
@@ -561,7 +64,7 @@ export default function App() {
     const handleDelete = (id) => {
         const updatedTree = deleteNode(fileTree, id);
         setFileTree(updatedTree);
-        setActiveEditorTabs(activeEditorTabs.filter((tab) => tab.id !== id));
+        setActiveTabs(activeTabs.filter((tab) => tab.id !== id));
     };
 
     const handleAddFile = (parentId, fileName) => {
@@ -574,7 +77,7 @@ export default function App() {
 
         setFileTree(insertNode(fileTree, parentId, newFile));
 
-        handleActiveEditorTabs(newFile.id, newFile.name, newFile.data);
+        // handleActiveEditorTabs(newFile.id, newFile.name, newFile.data);
     };
 
     const handleAddFolder = (parentId, folderName) => {
@@ -585,91 +88,174 @@ export default function App() {
             children: [],
         };
 
-        setFileTree(insertNode(fileTree, parentId, newFolder));
+        const updatedTree = insertNode(fileTree, parentId, newFolder);
+
+        const sortedTree = {
+            ...updatedTree,
+            children: sortTreeByTypeAndName(updatedTree.children),
+        };
+
+        setFileTree(sortedTree);
     };
 
-    const handleCloseTab = useCallback(
-        (tabId) => {
-            if (monacoEditor && selectedTabId === tabId) {
-                const currentContent = monacoEditor.getValue();
-                setEditorContent(currentContent);
-                setActiveEditorTabs((tabs) =>
-                    tabs.map((tab) =>
-                        tab.id === tabId
-                            ? { ...tab, content: currentContent }
-                            : tab
-                    )
-                );
-            }
+    const handleCloseTab = (tabId) => {
+        if (activeTabs.length === 1) return;
+        if (editorRef.current && selectedTabId === tabId) {
+            const currentContent = editorRef.current.getValue();
 
-            const updatedActiveEditorTabs = activeEditorTabs.filter(
-                (tab) => tab.id !== tabId
+            setActiveTabs((tabs) =>
+                tabs.map((tab) =>
+                    tab.id === tabId ? { ...tab, content: currentContent } : tab
+                )
             );
+        }
 
-            setActiveEditorTabs(updatedActiveEditorTabs);
+        const updatedActiveEditorTabs = activeTabs.filter(
+            (tab) => tab.id !== tabId
+        );
 
-            if (activeEditorTabs.length !== 1) {
-                setSelectedTabId(updatedActiveEditorTabs.at(-1).id);
-            } else {
-                setSelectedTabId(null);
+        setActiveTabs(updatedActiveEditorTabs);
+
+        if (activeTabs.length !== 1) {
+            setSelectedTabId(updatedActiveEditorTabs.at(-1).id);
+        } else {
+            setSelectedTabId(null);
+        }
+    };
+
+    const handleActiveEditorTabs = async (tabId, tabName, tabData) => {
+        if (editorRef.current && selectedTabId) {
+            const currentContent = editorRef.current.getValue();
+            setActiveTabs((tabs) =>
+                tabs.map((tab) =>
+                    tab.id === selectedTabId
+                        ? { ...tab, content: currentContent }
+                        : tab
+                )
+            );
+        }
+
+        const fileNode = findFileNodeById(fileTree, tabId);
+        let content = tabData ?? "";
+
+        if (fileNode) {
+            if (fileNode.data) {
+                content = fileNode.data; // ✅ Use saved in-memory content
+            } else if (fileNode.file) {
+                try {
+                    content = await readFileAsText(fileNode.file);
+                } catch (error) {
+                    console.error("Error reading file:", error);
+                    content = "Error loading file content";
+                }
             }
-        },
-        [activeEditorTabs, monacoEditor, selectedTabId]
-    );
+        }
 
-    useEffect(() => {
-        return () => {
-            if (editor) {
-                editor.dispose();
-            }
+        const newTab = {
+            id: tabId,
+            name: tabName,
+            content,
+            path: fileTree ? findFilePathById(fileTree, tabId) : `/${tabName}`,
         };
-    }, [editor]);
+
+        const isAlreadyOpened = activeTabs.some(
+            (activeTab) => activeTab.id === tabId
+        );
+
+        if (!isAlreadyOpened) {
+            setActiveTabs([...activeTabs, newTab]);
+        }
+
+        setSelectedTabId(tabId);
+
+        if (editorRef.current) {
+            editorRef.current.setValue(content);
+        }
+    };
+
+    const handleSaveFile = useCallback(() => {
+        if (!editorRef.current || !selectedTabId || !fileTree) return;
+
+        const updatedContent = editorRef.current.getValue();
+
+        // Update active tab content
+        setActiveTabs((tabs) =>
+            tabs.map((tab) =>
+                tab.id === selectedTabId
+                    ? { ...tab, content: updatedContent }
+                    : tab
+            )
+        );
+
+        // Update fileTree
+        const updateFileContent = (node) => {
+            if (!node) return null;
+            if (node.id === selectedTabId && node.type === "file") {
+                return { ...node, data: updatedContent };
+            }
+            if (node.children) {
+                return {
+                    ...node,
+                    children: node.children.map(updateFileContent),
+                };
+            }
+            return node;
+        };
+
+        const updatedTree = updateFileContent(fileTree);
+        setFileTree(updatedTree);
+
+        console.log(`Saved content for file ID: ${selectedTabId}`);
+    }, [editorRef, selectedTabId, fileTree]);
 
     return (
         <PanelGroup className="h-full" direction="horizontal">
-            {isUploading && (
-                <div className="text-white fixed bottom-2 right-2 text-sm z-50">
-                    Upload progress: {uploadProgress}%
-                </div>
-            )}
             <Panel
                 collapsedSize={0}
                 collapsible
                 style={{ width: "280px", minWidth: "280px", maxWidth: "280px" }}
                 className="flex flex-col border-r border-r-white"
             >
-                <div className="px-4 py-2 border-b border-b-white">
+                <div className="px-4 pt-3 pb-2 border-b border-b-white">
                     <h3 className="text-xs uppercase text-white">Explorer</h3>
                 </div>
                 <div className="p-2 overflow-auto h-full">
-                    <FileTree
-                        handleDelete={handleDelete}
-                        handleAddFile={handleAddFile}
-                        handleAddFolder={handleAddFolder}
-                        handleRename={handleRename}
-                        fileTree={fileTree}
-                        loadingFiles={loadingFiles}
-                        handleActiveEditorTabs={handleActiveEditorTabs}
-                    />
+                    {loadingFiles ? (
+                        <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e]">
+                            <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-12 h-12 animate-spin" />
+                        </div>
+                    ) : !fileTree ? (
+                        <Entry
+                            setFileTree={setFileTree}
+                            setLoadingFiles={setLoadingFiles}
+                        />
+                    ) : (
+                        <FileTree
+                            handleDelete={handleDelete}
+                            handleAddFile={handleAddFile}
+                            handleAddFolder={handleAddFolder}
+                            handleRename={handleRename}
+                            fileTree={fileTree}
+                            loadingFiles={loadingFiles}
+                            handleActiveEditorTabs={handleActiveEditorTabs}
+                        />
+                    )}
                 </div>
             </Panel>
             <PanelResizeHandle className="w-[0.1px] bg-white" />
             <Panel>
-                {activeEditorTabs.length === 0 ? (
+                {activeTabs.length === 0 ? (
                     <Entry
                         setFileTree={setFileTree}
                         setLoadingFiles={setLoadingFiles}
-                        setUploadProgress={setUploadProgress}
-                        setIsUploading={setIsUploading}
-                        isUploading={isUploading}
                     />
                 ) : (
                     <PanelGroup direction="vertical">
-                        <Panel>
+                        <Panel className="h-full">
                             <PanelGroup direction="horizontal">
                                 <Panel>
-                                    <div className="flex overflow-x-auto scrollbar-hidden">
-                                        {activeEditorTabs.map((tab) => (
+                                    <div className="flex overflow-x-auto scrollbar-hidden border-b border-white">
+                                        {activeTabs.map((tab) => (
                                             <TabButton
                                                 key={tab.id}
                                                 tab={tab}
@@ -684,25 +270,22 @@ export default function App() {
                                         ))}
                                     </div>
                                     <div
-                                        className="h-full w-full relative"
-                                        ref={monacoElementRef}
+                                        className="h-full w-full relative pt-2.5"
+                                        ref={mountEditor}
                                     >
-                                        {loading ? (
-                                            <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e]">
-                                                <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-16 h-16 animate-spin" />
-                                            </div>
-                                        ) : (
+                                        {fileTree && (
                                             <ActionsDropdown
-                                                handleDownloadProject={
-                                                    handleDownloadProject
-                                                }
-                                                handleBuild={handleBuild}
-                                                handleTest={handleTest}
-                                                saving={saving}
-                                                building={building}
-                                                fileTree={fileTree}
-                                                downloading={downloading}
-                                                testing={testing}
+                                                handleSaveFile={handleSaveFile}
+                                                // handleDownloadProject={
+                                                //     handleDownloadProject
+                                                // }
+                                                // handleBuild={handleBuild}
+                                                // handleTest={handleTest}
+                                                // saving={saving}
+                                                // building={building}
+                                                // fileTree={fileTree}
+                                                // downloading={downloading}
+                                                // testing={testing}
                                             />
                                         )}
                                     </div>
@@ -714,25 +297,17 @@ export default function App() {
                                     defaultSize={0}
                                     minSize={0}
                                     maxSize={100}
-                                >
-                                    <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll"></div>
-                                </Panel>
+                                ></Panel>
                             </PanelGroup>
                         </Panel>
-
                         <PanelResizeHandle className="h-1 bg-black" />
-
                         <Panel
                             collapsedSize={0}
                             collapsible
                             defaultSize={0}
                             minSize={0}
                             maxSize={100}
-                        >
-                            <div className="w-full h-full p-4 bg-[#1e1e1e] overflow-y-scroll">
-                                {result}
-                            </div>
-                        </Panel>
+                        ></Panel>
                     </PanelGroup>
                 )}
             </Panel>
