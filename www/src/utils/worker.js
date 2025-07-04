@@ -64,14 +64,4 @@ monaco.languages.onLanguage("rust", async () => {
     );
 
     await connectToLs();
-
-    console.log(
-        "Languages after LSP ready:",
-        monaco.languages.getLanguages().map((l) => l.id)
-    );
-
-    console.log(
-        "Loaded extensions:",
-        vscode.extensions.all.map((ext) => ext.id)
-    );
 });
