@@ -1,18 +1,25 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { BiFolderOpen } from "react-icons/bi";
 import { FiFilePlus, FiArrowRight } from "react-icons/fi";
 import { useRef } from "react";
-import { buildFileTreeFromInputWebKitDirectory } from "../utils/utils";
+import {
+    buildFileTreeFromInputWebKitDirectory,
+    findFileInSrcFolder,
+    findFirstRsFile,
+} from "../utils/utils";
 
-function Entry({ setFileTree, setLoadingFiles }) {
+function Entry({
+    setFileTree,
+    setActiveTabs,
+    selectedTabId,
+    handleActiveEditorTabs,
+    MAIN_DOT_RS_ID,
+    setSelectedTabId,
+}) {
     const folderInputRef = useRef();
     const fileInputRef = useRef();
 
     const handleOpenFolder = () => {
-        // alert(
-        //     "Reading files from folder… This may take a few seconds for large folders."
-        // );
         folderInputRef.current?.click();
     };
 
@@ -37,6 +44,30 @@ function Entry({ setFileTree, setLoadingFiles }) {
             };
 
             setFileTree(tree);
+
+            const fileInSrc = findFileInSrcFolder(tree);
+            const fallbackRsFile = findFirstRsFile(tree);
+
+            const fileToOpen = fileInSrc || fallbackRsFile;
+
+            if (fileToOpen) {
+                await handleActiveEditorTabs(
+                    fileToOpen.id,
+                    fileToOpen.name,
+                    fileToOpen.data,
+                    tree
+                );
+
+                setActiveTabs((tabs) => {
+                    const withoutMain = tabs.filter(
+                        (tab) => tab.id !== MAIN_DOT_RS_ID
+                    );
+                    if (selectedTabId === MAIN_DOT_RS_ID) {
+                        setSelectedTabId(fileToOpen.id);
+                    }
+                    return withoutMain;
+                });
+            }
 
             alert(`${rootName} folder uploaded successfully`);
         } catch (err) {
@@ -77,6 +108,29 @@ function Entry({ setFileTree, setLoadingFiles }) {
             };
 
             setFileTree(tree);
+            const fileInSrc = findFileInSrcFolder(tree);
+            const fallbackRsFile = findFirstRsFile(tree);
+
+            const fileToOpen = fileInSrc || fallbackRsFile;
+
+            if (fileToOpen) {
+                await handleActiveEditorTabs(
+                    fileToOpen.id,
+                    fileToOpen.name,
+                    fileToOpen.data,
+                    tree
+                );
+
+                setActiveTabs((tabs) => {
+                    const withoutMain = tabs.filter(
+                        (tab) => tab.id !== MAIN_DOT_RS_ID
+                    );
+                    if (selectedTabId === MAIN_DOT_RS_ID) {
+                        setSelectedTabId(fileToOpen.id);
+                    }
+                    return withoutMain;
+                });
+            }
 
             alert(`${file.name} file uploaded successfully!`);
         } catch (error) {
