@@ -1,7 +1,6 @@
 import JSZip from "jszip";
 import { v4 as uuidv4 } from "uuid";
 export const generateId = () => uuidv4();
-import * as monaco from "monaco-editor";
 
 export const buildFileTreeFromInputWebKitDirectory = (files) => {
     const children = [];
@@ -156,6 +155,8 @@ export const getProjectIdFromUrl = () => {
 };
 
 export const findFileNodeById = (node, id) => {
+    if (!node) return null;
+
     if (node.id === id) {
         return node;
     }
@@ -170,8 +171,36 @@ export const findFileNodeById = (node, id) => {
     return null;
 };
 
-export const getRustModel = (uri) =>
-    monaco.editor.getModel(uri) ?? monaco.editor.createModel("", "rust", uri);
+export const findFirstRsFile = (node) => {
+    if (!node) return null;
+
+    if (node.type === "file" && node.name.endsWith(".rs")) {
+        return node;
+    }
+
+    if (node.children && node.children.length > 0) {
+        for (const child of node.children) {
+            const found = findFirstRsFile(child);
+            if (found) return found;
+        }
+    }
+
+    return null;
+};
+
+export const findFileInSrcFolder = (node) => {
+    if (!node || !node.children) return null;
+
+    const srcFolder = node.children.find(
+        (child) => child.type === "folder" && child.name === "src"
+    );
+
+    if (srcFolder && srcFolder.children) {
+        return findFirstRsFile(srcFolder);
+    }
+
+    return null;
+};
 
 // const loadProject = useCallback(async () => {
 //     try {

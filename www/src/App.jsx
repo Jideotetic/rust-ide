@@ -13,43 +13,46 @@ import {
 } from "./utils/utils.js";
 import * as monaco from "monaco-editor";
 import * as vscode from "vscode";
+import { v4 as uuidv4 } from "uuid";
 
-const UNTITLED_ID = "62d83479-32c6-45db-bc52-054482a5fa38";
+const MAIN_DOT_RS_ID = uuidv4();
+
+const initialMainRsContent = `fn main() {\n    println!("Hello, World!");\n}`;
 
 export default function App() {
     const [activeTabs, setActiveTabs] = useState([
         {
-            content: `fn main() {\n println!("Hello, World!" );\n}`,
-            id: UNTITLED_ID,
+            content: initialMainRsContent,
+            id: MAIN_DOT_RS_ID,
             name: "main.rs",
             path: "main.rs",
         },
     ]);
-    const [selectedTabId, setSelectedTabId] = useState(UNTITLED_ID);
-    const [fileTree, setFileTree] = useState(null);
-    const [loadingFiles, setLoadingFiles] = useState(false);
+    const [selectedTabId, setSelectedTabId] = useState(MAIN_DOT_RS_ID);
+    const [fileTree, setFileTree] = useState();
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
 
-    const mountEditor = useCallback(async (node) => {
+    const mountEditor = (node) => {
+        console.log(activeTabs);
         if (!node || editorRef.current) return;
 
         editorRef.current = monaco.editor.create(node, {
             model: monaco.editor.createModel(
-                ``,
+                "",
                 "rust",
                 vscode.Uri.file(`root/sorobuild-ide-backend/src/main.rs`)
             ),
             theme: "vs-dark",
             automaticLayout: true,
         });
-    }, []);
+    };
 
     useEffect(() => {
         if (!editorRef.current) return;
 
         const tab = activeTabs.find((t) => t.id === selectedTabId);
-        if (tab) editorRef.current.setValue(tab.content ?? "");
+        if (tab) editorRef.current.setValue(tab.content);
     }, [selectedTabId, activeTabs]);
 
     const handleRename = (id, newName) => {
@@ -69,20 +72,18 @@ export default function App() {
 
     const handleAddFile = (parentId, fileName) => {
         const newFile = {
-            id: Date.now(),
+            id: uuidv4(),
             type: "file",
             name: fileName,
             data: "",
         };
 
         setFileTree(insertNode(fileTree, parentId, newFile));
-
-        // handleActiveEditorTabs(newFile.id, newFile.name, newFile.data);
     };
 
     const handleAddFolder = (parentId, folderName) => {
         const newFolder = {
-            id: Date.now(),
+            id: uuidv4(),
             type: "folder",
             name: folderName,
             children: [],
@@ -123,90 +124,97 @@ export default function App() {
         }
     };
 
-    const handleActiveEditorTabs = async (tabId, tabName, tabData) => {
-        if (editorRef.current && selectedTabId) {
-            const currentContent = editorRef.current.getValue();
-            setActiveTabs((tabs) =>
-                tabs.map((tab) =>
-                    tab.id === selectedTabId
-                        ? { ...tab, content: currentContent }
-                        : tab
-                )
-            );
-        }
+    const handleActiveEditorTabs = useCallback(
+        async (tabId, tabName, tabData, treeOverride = null) => {
+            const currentTree = treeOverride || fileTree;
 
-        const fileNode = findFileNodeById(fileTree, tabId);
-        let content = tabData ?? "";
+            if (editorRef.current && selectedTabId) {
+                const currentContent = editorRef.current.getValue();
+                setActiveTabs((tabs) =>
+                    tabs.map((tab) =>
+                        tab.id === selectedTabId
+                            ? { ...tab, content: currentContent }
+                            : tab
+                    )
+                );
+            }
 
-        if (fileNode) {
-            if (fileNode.data) {
-                content = fileNode.data; // ✅ Use saved in-memory content
-            } else if (fileNode.file) {
-                try {
-                    content = await readFileAsText(fileNode.file);
-                } catch (error) {
-                    console.error("Error reading file:", error);
-                    content = "Error loading file content";
+            const fileNode = findFileNodeById(currentTree, tabId);
+            let content = tabData ?? "";
+
+            if (fileNode) {
+                if (fileNode.data) {
+                    content = fileNode.data; // ✅ Use saved in-memory content
+                } else if (fileNode.file) {
+                    try {
+                        content = await readFileAsText(fileNode.file);
+                    } catch (error) {
+                        console.error("Error reading file:", error);
+                        content = "Error loading file content";
+                    }
                 }
             }
-        }
 
-        const newTab = {
-            id: tabId,
-            name: tabName,
-            content,
-            path: fileTree ? findFilePathById(fileTree, tabId) : `/${tabName}`,
-        };
+            const newTab = {
+                id: tabId,
+                name: tabName,
+                content,
+                path: fileTree
+                    ? findFilePathById(fileTree, tabId)
+                    : `/${tabName}`,
+            };
 
-        const isAlreadyOpened = activeTabs.some(
-            (activeTab) => activeTab.id === tabId
-        );
+            const isAlreadyOpened = activeTabs.some(
+                (activeTab) => activeTab.id === tabId
+            );
 
-        if (!isAlreadyOpened) {
-            setActiveTabs([...activeTabs, newTab]);
-        }
-
-        setSelectedTabId(tabId);
-
-        if (editorRef.current) {
-            editorRef.current.setValue(content);
-        }
-    };
-
-    const handleSaveFile = useCallback(() => {
-        if (!editorRef.current || !selectedTabId || !fileTree) return;
-
-        const updatedContent = editorRef.current.getValue();
-
-        // Update active tab content
-        setActiveTabs((tabs) =>
-            tabs.map((tab) =>
-                tab.id === selectedTabId
-                    ? { ...tab, content: updatedContent }
-                    : tab
-            )
-        );
-
-        // Update fileTree
-        const updateFileContent = (node) => {
-            if (!node) return null;
-            if (node.id === selectedTabId && node.type === "file") {
-                return { ...node, data: updatedContent };
+            if (!isAlreadyOpened) {
+                setActiveTabs([...activeTabs, newTab]);
             }
-            if (node.children) {
-                return {
-                    ...node,
-                    children: node.children.map(updateFileContent),
-                };
+
+            setSelectedTabId(tabId);
+
+            if (editorRef.current) {
+                editorRef.current.setValue(content);
             }
-            return node;
-        };
+        },
+        [editorRef, selectedTabId, activeTabs, fileTree]
+    );
 
-        const updatedTree = updateFileContent(fileTree);
-        setFileTree(updatedTree);
+    // const handleSaveFile = useCallback(() => {
+    //     if (!editorRef.current || !selectedTabId || !fileTree) return;
 
-        console.log(`Saved content for file ID: ${selectedTabId}`);
-    }, [editorRef, selectedTabId, fileTree]);
+    //     const updatedContent = editorRef.current.getValue();
+
+    //     // Update active tab content
+    //     setActiveTabs((tabs) =>
+    //         tabs.map((tab) =>
+    //             tab.id === selectedTabId
+    //                 ? { ...tab, content: updatedContent }
+    //                 : tab
+    //         )
+    //     );
+
+    //     // Update fileTree
+    //     const updateFileContent = (node) => {
+    //         if (!node) return null;
+    //         if (node.id === selectedTabId && node.type === "file") {
+    //             return { ...node, data: updatedContent };
+    //         }
+    //         if (node.children) {
+    //             return {
+    //                 ...node,
+    //                 children: node.children.map(updateFileContent),
+    //             };
+    //         }
+    //         return node;
+    //     };
+
+    //     const updatedTree = updateFileContent(fileTree);
+    //     setFileTree(updatedTree);
+
+    //     console.log(`Saved content for file ID: ${selectedTabId}`);
+    // }, [editorRef, selectedTabId, fileTree]);
 
     return (
         <PanelGroup className="h-full" direction="horizontal">
@@ -220,14 +228,15 @@ export default function App() {
                     <h3 className="text-xs uppercase text-white">Explorer</h3>
                 </div>
                 <div className="p-2 overflow-auto h-full">
-                    {loadingFiles ? (
-                        <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e]">
-                            <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-12 h-12 animate-spin" />
-                        </div>
-                    ) : !fileTree ? (
+                    {!fileTree ? (
                         <Entry
                             setFileTree={setFileTree}
-                            setLoadingFiles={setLoadingFiles}
+                            fileTree={fileTree}
+                            setActiveTabs={setActiveTabs}
+                            setSelectedTabId={setSelectedTabId}
+                            selectedTabId={selectedTabId}
+                            handleActiveEditorTabs={handleActiveEditorTabs}
+                            MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
                         />
                     ) : (
                         <FileTree
@@ -236,7 +245,6 @@ export default function App() {
                             handleAddFolder={handleAddFolder}
                             handleRename={handleRename}
                             fileTree={fileTree}
-                            loadingFiles={loadingFiles}
                             handleActiveEditorTabs={handleActiveEditorTabs}
                         />
                     )}
@@ -247,7 +255,11 @@ export default function App() {
                 {activeTabs.length === 0 ? (
                     <Entry
                         setFileTree={setFileTree}
-                        setLoadingFiles={setLoadingFiles}
+                        fileTree={fileTree}
+                        setActiveTabs={setActiveTabs}
+                        setSelectedTabId={setSelectedTabId}
+                        handleActiveEditorTabs={handleActiveEditorTabs}
+                        MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
                     />
                 ) : (
                     <PanelGroup direction="vertical">
@@ -275,17 +287,17 @@ export default function App() {
                                     >
                                         {fileTree && (
                                             <ActionsDropdown
-                                                handleSaveFile={handleSaveFile}
-                                                // handleDownloadProject={
-                                                //     handleDownloadProject
-                                                // }
-                                                // handleBuild={handleBuild}
-                                                // handleTest={handleTest}
-                                                // saving={saving}
-                                                // building={building}
-                                                // fileTree={fileTree}
-                                                // downloading={downloading}
-                                                // testing={testing}
+                                            // handleSaveFile={handleSaveFile}
+                                            // handleDownloadProject={
+                                            //     handleDownloadProject
+                                            // }
+                                            // handleBuild={handleBuild}
+                                            // handleTest={handleTest}
+                                            // saving={saving}
+                                            // building={building}
+                                            // fileTree={fileTree}
+                                            // downloading={downloading}
+                                            // testing={testing}
                                             />
                                         )}
                                     </div>
