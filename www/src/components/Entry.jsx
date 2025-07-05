@@ -5,7 +5,10 @@ import { useRef } from "react";
 import {
     buildFileTreeFromInputWebKitDirectory,
     findFileInSrcFolder,
+    findFirstFile,
     findFirstRsFile,
+    updateUrlWithProjectId,
+    uploadAsZip,
 } from "../utils/utils";
 
 function Entry({
@@ -47,8 +50,9 @@ function Entry({
 
             const fileInSrc = findFileInSrcFolder(tree);
             const fallbackRsFile = findFirstRsFile(tree);
+            const firstFile = findFirstFile(tree);
 
-            const fileToOpen = fileInSrc || fallbackRsFile;
+            const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
 
             if (fileToOpen) {
                 await handleActiveEditorTabs(
@@ -70,6 +74,12 @@ function Entry({
             }
 
             alert(`${rootName} folder uploaded successfully`);
+
+            const res = await uploadAsZip(files);
+
+            console.log("Folder upload response:", res);
+
+            updateUrlWithProjectId(res.projectId);
         } catch (err) {
             console.error("Folder upload failed:", err);
             alert(`Folder upload failed: ${err.message}`);
@@ -110,8 +120,11 @@ function Entry({
             setFileTree(tree);
             const fileInSrc = findFileInSrcFolder(tree);
             const fallbackRsFile = findFirstRsFile(tree);
+            const firstFile = findFirstFile(tree);
 
-            const fileToOpen = fileInSrc || fallbackRsFile;
+            const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
+
+            console.log("File to open:", fileToOpen);
 
             if (fileToOpen) {
                 await handleActiveEditorTabs(
@@ -133,6 +146,12 @@ function Entry({
             }
 
             alert(`${file.name} file uploaded successfully!`);
+
+            const res = await uploadAsZip(files);
+
+            console.log("Folder upload response:", res);
+
+            updateUrlWithProjectId(res.projectId);
         } catch (error) {
             console.error("File upload failed:", error);
             alert(`File upload failed: ${error.message}`);

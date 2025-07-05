@@ -56,6 +56,4 @@ await updateUserConfiguration(`{
 monaco.languages.onLanguage("rust", async () => {
     console.log("Rust language registered → starting LSP");
     await connectToLs();
-
-    window.dispatchEvent(new Event("rust-ready"));
 });
