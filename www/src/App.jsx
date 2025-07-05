@@ -224,6 +224,71 @@ export default function App() {
         [editorRef, selectedTabId, activeTabs, fileTree]
     );
 
+    const handleSaveFile = useCallback(async () => {
+        if (!editorRef.current || !selectedTabId) return;
+
+        const currentContent = editorRef.current.getValue();
+
+        const projectId = getProjectIdFromUrl();
+
+        try {
+            const res = await fetch(
+                `${
+                    import.meta.env.VITE_BASE_URL
+                }/api/projects/${projectId}/save`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ content: currentContent }),
+                }
+            );
+
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(errText || "Failed to format content");
+            }
+
+            const { content: formattedContent } = await res.json();
+
+            // Update active tab content
+            setActiveTabs((tabs) =>
+                tabs.map((tab) =>
+                    tab.id === selectedTabId
+                        ? { ...tab, content: formattedContent }
+                        : tab
+                )
+            );
+
+            // Update file tree
+            const updateFileContent = (node) => {
+                if (!node) return null;
+                if (node.id === selectedTabId && node.type === "file") {
+                    return { ...node, data: formattedContent };
+                }
+                if (node.children) {
+                    return {
+                        ...node,
+                        children: node.children.map(updateFileContent),
+                    };
+                }
+                return node;
+            };
+
+            const updatedTree = updateFileContent(fileTree);
+            setFileTree(updatedTree);
+
+            // Update editor content
+            editorRef.current.setValue(formattedContent);
+
+            console.log("File formatted and saved");
+        } catch (err) {
+            console.error("Formatting failed:", err);
+            alert("Error formatting file: " + err.message);
+        }
+    }, [editorRef, selectedTabId, fileTree]);
+
     // const handleSaveFile = useCallback(() => {
     //     if (!editorRef.current || !selectedTabId || !fileTree) return;
 
@@ -320,17 +385,17 @@ export default function App() {
                                 >
                                     {fileTree && (
                                         <ActionsDropdown
-                                        // handleSaveFile={handleSaveFile}
-                                        // handleDownloadProject={
-                                        //     handleDownloadProject
-                                        // }
-                                        // handleBuild={handleBuild}
-                                        // handleTest={handleTest}
-                                        // saving={saving}
-                                        // building={building}
-                                        // fileTree={fileTree}
-                                        // downloading={downloading}
-                                        // testing={testing}
+                                            handleSaveFile={handleSaveFile}
+                                            // handleDownloadProject={
+                                            //     handleDownloadProject
+                                            // }
+                                            // handleBuild={handleBuild}
+                                            // handleTest={handleTest}
+                                            // saving={saving}
+                                            // building={building}
+                                            // fileTree={fileTree}
+                                            // downloading={downloading}
+                                            // testing={testing}
                                         />
                                     )}
                                 </div>
