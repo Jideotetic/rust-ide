@@ -86,7 +86,7 @@ export const readFileAsText = (file) => {
 
 export const createProjectWithFile = async (filename, content) => {
     const res = await fetch(
-        "https://sorobuild-ide-backend-1.onrender.com/api/projects/create",
+        `${import.meta.env.VITE_BASE_URL}/api/projects/create`,
         {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -99,7 +99,7 @@ export const createProjectWithFile = async (filename, content) => {
     return res.json();
 };
 
-export async function uploadAsZip(files, projectId, progressCb) {
+export async function uploadAsZip(files) {
     const zip = new JSZip();
 
     const firstFilePath = files[0].webkitRelativePath;
@@ -109,15 +109,17 @@ export async function uploadAsZip(files, projectId, progressCb) {
         zip.file(file.webkitRelativePath || file.name, file);
     });
 
-    const content = await zip.generateAsync({ type: "blob" }, (metadata) => {
-        progressCb(Math.round(metadata.percent * 0.9));
-    });
+    const content = await zip.generateAsync({ type: "blob" });
 
     const formData = new FormData();
-    formData.append("file", content, `${folderName}.zip`);
+    formData.append(
+        "file",
+        content,
+        `${folderName ? folderName : "New Folder"}.zip`
+    );
     try {
         const response = await fetch(
-            `https://sorobuild-ide-backend-1.onrender.com/api/projects/${projectId}/upload-zip`,
+            `${import.meta.env.VITE_BASE_URL}/api/projects/upload-zip`,
             {
                 method: "POST",
                 body: formData,
@@ -125,13 +127,107 @@ export async function uploadAsZip(files, projectId, progressCb) {
         );
 
         if (!response.ok) throw new Error("Upload failed");
-        progressCb(100);
         alert("Project created successfully");
         return response.json();
     } catch (error) {
         console.error("Zip upload failed:", error);
         alert("Zip upload failed");
     }
+}
+
+export async function downloadProjectAsZip(projectId) {
+    const baseUrl = import.meta.env.VITE_BASE_URL;
+
+    if (!projectId) {
+        throw new Error("No project ID provided");
+    }
+
+    let response;
+    try {
+        response = await fetch(`${baseUrl}/api/projects/${projectId}/load`);
+    } catch (err) {
+        console.error("Network error while fetching project zip:", err);
+        throw new Error("Network error while loading project");
+    }
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+            `Failed to load project: ${errorText || response.statusText}`
+        );
+    }
+
+    let zip;
+    try {
+        const blob = await response.blob();
+        zip = await JSZip.loadAsync(blob);
+    } catch (err) {
+        console.error("Failed to parse ZIP archive:", err);
+        throw new Error("Invalid ZIP file");
+    }
+
+    const extractedFiles = {};
+
+    try {
+        await Promise.all(
+            Object.keys(zip.files).map(async (filename) => {
+                const file = zip.files[filename];
+                if (!file.dir) {
+                    const content = await file.async("string");
+                    const cleanPath = filename.replace(
+                        new RegExp(`^${projectId}/?`),
+                        ""
+                    );
+                    extractedFiles[cleanPath] = content;
+                }
+            })
+        );
+    } catch (err) {
+        console.error("Failed to extract files from ZIP:", err);
+        throw new Error("ZIP extraction failed");
+    }
+
+    return buildTreeFromFiles(extractedFiles, projectId);
+}
+
+function buildTreeFromFiles(files, projectId) {
+    const root = {
+        id: Date.now(),
+        type: "folder",
+        name: "",
+        children: [],
+        handle: null,
+    };
+
+    for (const [filePath, content] of Object.entries(files)) {
+        const parts = filePath.split("/").filter(Boolean);
+        let currentLevel = root.children;
+
+        parts.forEach((part, index) => {
+            const isFile = index === parts.length - 1;
+            let node = currentLevel.find((item) => item.name === part);
+
+            if (!node) {
+                node = {
+                    id: `${projectId}-${filePath}-${index}`,
+                    name: part,
+                    type: isFile ? "file" : "folder",
+                    path: parts.slice(0, index + 1).join("/"),
+                    data: isFile ? content : undefined,
+                    children: isFile ? undefined : [],
+                };
+                currentLevel.push(node);
+            }
+
+            if (!isFile) {
+                currentLevel = node.children;
+            }
+        });
+    }
+
+    sortTreeByTypeAndName(root.children);
+
+    return root.children.length === 1 ? root.children[0] : root;
 }
 
 export const findFilePathById = (node, id) => {
@@ -197,6 +293,21 @@ export const findFileInSrcFolder = (node) => {
 
     if (srcFolder && srcFolder.children) {
         return findFirstRsFile(srcFolder);
+    }
+
+    return null;
+};
+
+export const findFirstFile = (node) => {
+    if (!node) return null;
+
+    if (node.type === "file") return node;
+
+    if (node.children && node.children.length > 0) {
+        for (const child of node.children) {
+            const found = findFirstFile(child);
+            if (found) return found;
+        }
     }
 
     return null;

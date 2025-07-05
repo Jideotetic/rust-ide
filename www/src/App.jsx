@@ -6,8 +6,13 @@ import useTree from "./hooks/useTree.js";
 import TabButton from "./components/TabButton.jsx";
 import ActionsDropdown from "./components/ActionsDropDown.jsx";
 import {
+    downloadProjectAsZip,
+    findFileInSrcFolder,
     findFileNodeById,
     findFilePathById,
+    findFirstFile,
+    findFirstRsFile,
+    getProjectIdFromUrl,
     readFileAsText,
     sortTreeByTypeAndName,
 } from "./utils/utils.js";
@@ -34,7 +39,6 @@ export default function App() {
     const { insertNode, deleteNode, updateNode } = useTree();
 
     const mountEditor = (node) => {
-        console.log(activeTabs);
         if (!node || editorRef.current) return;
 
         editorRef.current = monaco.editor.create(node, {
@@ -47,6 +51,45 @@ export default function App() {
             automaticLayout: true,
         });
     };
+
+    useEffect(() => {
+        const loadProjectFromUrl = async () => {
+            const projectId = getProjectIdFromUrl();
+            if (projectId) {
+                const tree = await downloadProjectAsZip(projectId);
+
+                setFileTree(tree);
+
+                const fileInSrc = findFileInSrcFolder(tree);
+                const fallbackRsFile = findFirstRsFile(tree);
+                const firstFile = findFirstFile(tree);
+
+                const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
+
+                if (fileToOpen) {
+                    await handleActiveEditorTabs(
+                        fileToOpen.id,
+                        fileToOpen.name,
+                        fileToOpen.data,
+                        tree
+                    );
+
+                    setActiveTabs((tabs) => {
+                        const withoutMain = tabs.filter(
+                            (tab) => tab.id !== MAIN_DOT_RS_ID
+                        );
+                        if (selectedTabId === MAIN_DOT_RS_ID) {
+                            setSelectedTabId(fileToOpen.id);
+                        }
+                        return withoutMain;
+                    });
+                }
+            }
+        };
+
+        loadProjectFromUrl();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (!editorRef.current) return;
@@ -252,76 +295,65 @@ export default function App() {
             </Panel>
             <PanelResizeHandle className="w-[0.1px] bg-white" />
             <Panel>
-                {activeTabs.length === 0 ? (
-                    <Entry
-                        setFileTree={setFileTree}
-                        fileTree={fileTree}
-                        setActiveTabs={setActiveTabs}
-                        setSelectedTabId={setSelectedTabId}
-                        handleActiveEditorTabs={handleActiveEditorTabs}
-                        MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
-                    />
-                ) : (
-                    <PanelGroup direction="vertical">
-                        <Panel className="h-full">
-                            <PanelGroup direction="horizontal">
-                                <Panel>
-                                    <div className="flex overflow-x-auto scrollbar-hidden border-b border-white">
-                                        {activeTabs.map((tab) => (
-                                            <TabButton
-                                                key={tab.id}
-                                                tab={tab}
-                                                handleCloseTab={handleCloseTab}
-                                                isSelected={
-                                                    tab.id === selectedTabId
-                                                }
-                                                onClick={() =>
-                                                    setSelectedTabId(tab.id)
-                                                }
-                                            />
-                                        ))}
-                                    </div>
-                                    <div
-                                        className="h-full w-full relative pt-2.5"
-                                        ref={mountEditor}
-                                    >
-                                        {fileTree && (
-                                            <ActionsDropdown
-                                            // handleSaveFile={handleSaveFile}
-                                            // handleDownloadProject={
-                                            //     handleDownloadProject
-                                            // }
-                                            // handleBuild={handleBuild}
-                                            // handleTest={handleTest}
-                                            // saving={saving}
-                                            // building={building}
-                                            // fileTree={fileTree}
-                                            // downloading={downloading}
-                                            // testing={testing}
-                                            />
-                                        )}
-                                    </div>
-                                </Panel>
-                                <PanelResizeHandle className="w-1 bg-black" />
-                                <Panel
-                                    collapsedSize={0}
-                                    collapsible
-                                    defaultSize={0}
-                                    minSize={0}
-                                    maxSize={100}
-                                ></Panel>
-                            </PanelGroup>
-                        </Panel>
-                        <PanelResizeHandle className="h-1 bg-black" />
-                        <Panel
-                            collapsedSize={0}
-                            collapsible
-                            defaultSize={0}
-                            minSize={0}
-                            maxSize={100}
-                        ></Panel>
-                    </PanelGroup>
-                )}
+                <PanelGroup direction="vertical">
+                    <Panel className="h-full">
+                        <PanelGroup direction="horizontal">
+                            <Panel>
+                                <div className="flex overflow-x-auto scrollbar-hidden border-b border-white">
+                                    {activeTabs.map((tab) => (
+                                        <TabButton
+                                            key={tab.id}
+                                            tab={tab}
+                                            handleCloseTab={handleCloseTab}
+                                            isSelected={
+                                                tab.id === selectedTabId
+                                            }
+                                            onClick={() =>
+                                                setSelectedTabId(tab.id)
+                                            }
+                                        />
+                                    ))}
+                                </div>
+                                <div
+                                    className="h-full w-full relative pt-2.5"
+                                    ref={mountEditor}
+                                >
+                                    {fileTree && (
+                                        <ActionsDropdown
+                                        // handleSaveFile={handleSaveFile}
+                                        // handleDownloadProject={
+                                        //     handleDownloadProject
+                                        // }
+                                        // handleBuild={handleBuild}
+                                        // handleTest={handleTest}
+                                        // saving={saving}
+                                        // building={building}
+                                        // fileTree={fileTree}
+                                        // downloading={downloading}
+                                        // testing={testing}
+                                        />
+                                    )}
+                                </div>
+                            </Panel>
+                            <PanelResizeHandle className="w-1 bg-black" />
+                            <Panel
+                                collapsedSize={0}
+                                collapsible
+                                defaultSize={0}
+                                minSize={0}
+                                maxSize={100}
+                            ></Panel>
+                        </PanelGroup>
+                    </Panel>
+                    <PanelResizeHandle className="h-1 bg-black" />
+                    <Panel
+                        collapsedSize={0}
+                        collapsible
+                        defaultSize={0}
+                        minSize={0}
+                        maxSize={100}
+                    ></Panel>
+                </PanelGroup>
             </Panel>
         </PanelGroup>
     );

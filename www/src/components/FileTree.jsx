@@ -53,22 +53,6 @@ function FileTree({
         }
     }, [isRenaming.showInput]);
 
-    // if (loadingFiles) {
-    //     return (
-    //         <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e]">
-    //             <div className="border-4 border-t-4 border-gray-200 border-t-blue-500 rounded-full w-10 h-10 animate-spin" />
-    //         </div>
-    //     );
-    // }
-
-    if (!fileTree) {
-        return (
-            <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e]">
-                <p className="text-white italic">Nothing to see here yet...</p>
-            </div>
-        );
-    }
-
     const handleKebabClick = (e) => {
         e.stopPropagation();
         setIsDropdownOpen(!isDropdownOpen);
