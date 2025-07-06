@@ -75,6 +75,12 @@ export const updateUrlWithProjectId = (projectId) => {
     window.history.pushState({}, "", url);
 };
 
+export const removeProjectIdFromUrl = () => {
+    const url = new URL(window.location);
+    url.searchParams.delete("projectId");
+    window.history.pushState({}, "", url);
+};
+
 export const readFileAsText = (file) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -100,24 +106,25 @@ export const createProjectWithFile = async (filename, content) => {
 };
 
 export async function uploadAsZip(files) {
-    const zip = new JSZip();
-
-    const firstFilePath = files[0].webkitRelativePath;
-    const folderName = firstFilePath.split("/")[0];
-
-    Array.from(files).forEach((file) => {
-        zip.file(file.webkitRelativePath || file.name, file);
-    });
-
-    const content = await zip.generateAsync({ type: "blob" });
-
-    const formData = new FormData();
-    formData.append(
-        "file",
-        content,
-        `${folderName ? folderName : "New Folder"}.zip`
-    );
     try {
+        const zip = new JSZip();
+
+        const folderName = getFolderNameFromWebkitRelativePath(files[0]);
+
+        // Add files to the zip
+        Array.from(files).forEach((file) => {
+            zip.file(file.webkitRelativePath || file.name, file);
+        });
+
+        const content = await zip.generateAsync({ type: "blob" });
+
+        const formData = new FormData();
+        formData.append(
+            "file",
+            content,
+            `${folderName ? folderName : "New Folder"}.zip`
+        );
+
         const response = await fetch(
             `${import.meta.env.VITE_BASE_URL}/api/projects/upload-zip`,
             {
@@ -127,48 +134,35 @@ export async function uploadAsZip(files) {
         );
 
         if (!response.ok) throw new Error("Upload failed");
-        alert("Project created successfully");
+
         return response.json();
     } catch (error) {
-        console.error("Zip upload failed:", error);
-        alert("Zip upload failed");
+        console.error("Upload failed:", error);
+        alert(`Upload failed...Kindly retry`);
     }
 }
 
 export async function downloadProjectAsZip(projectId) {
-    const baseUrl = import.meta.env.VITE_BASE_URL;
-
-    if (!projectId) {
-        throw new Error("No project ID provided");
-    }
-
-    let response;
     try {
-        response = await fetch(`${baseUrl}/api/projects/${projectId}/load`);
-    } catch (err) {
-        console.error("Network error while fetching project zip:", err);
-        throw new Error("Network error while loading project");
-    }
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-            `Failed to load project: ${errorText || response.statusText}`
+        const response = await fetch(
+            `${import.meta.env.VITE_BASE_URL}/api/projects/${projectId}/load`
         );
-    }
 
-    let zip;
-    try {
+        if (response.status === 404) {
+            alert("No project found...Kindly upload a project");
+            removeProjectIdFromUrl();
+            return null;
+        }
+
+        if (!response.ok) {
+            throw new Error(`${response.statusText}`);
+        }
+
         const blob = await response.blob();
-        zip = await JSZip.loadAsync(blob);
-    } catch (err) {
-        console.error("Failed to parse ZIP archive:", err);
-        throw new Error("Invalid ZIP file");
-    }
+        const zip = await JSZip.loadAsync(blob);
 
-    const extractedFiles = {};
+        const extractedFiles = {};
 
-    try {
         await Promise.all(
             Object.keys(zip.files).map(async (filename) => {
                 const file = zip.files[filename];
@@ -182,15 +176,15 @@ export async function downloadProjectAsZip(projectId) {
                 }
             })
         );
-    } catch (err) {
-        console.error("Failed to extract files from ZIP:", err);
-        throw new Error("ZIP extraction failed");
-    }
 
-    return buildTreeFromFiles(extractedFiles, projectId);
+        return buildTreeFromFiles(extractedFiles, projectId);
+    } catch (err) {
+        console.error("Failed to download project", err);
+        alert(`Failed to load project`);
+    }
 }
 
-function buildTreeFromFiles(files, projectId) {
+export function buildTreeFromFiles(files, projectId) {
     const root = {
         id: Date.now(),
         type: "folder",
@@ -230,6 +224,17 @@ function buildTreeFromFiles(files, projectId) {
     return root.children.length === 1 ? root.children[0] : root;
 }
 
+export async function populateFileTreeWithData(node) {
+    if (node.type === "folder") {
+        for (const child of node.children || []) {
+            await populateFileTreeWithData(child);
+        }
+    } else if (node.type === "file" && !node.data) {
+        // Read content only if not already present
+        node.data = await node.file.text(); // Assumes File API
+    }
+}
+
 export async function zipFileTree(fileTree) {
     const zip = new JSZip();
 
@@ -244,6 +249,7 @@ export async function zipFileTree(fileTree) {
             }
         } else if (node.type === "file") {
             const content = node.data ?? "";
+            console.log(content);
             zip.file(currentPath, content);
         }
     };
@@ -259,7 +265,9 @@ export async function uploadAsZipForBuild(fileTree) {
         throw new Error("No project ID provided");
     }
 
-    const zip = await zipFileTree(fileTree); // <--- uses utility above
+    await populateFileTreeWithData(fileTree);
+
+    const zip = await zipFileTree(fileTree);
     const content = await zip.generateAsync({ type: "blob" });
 
     console.log(fileTree);
@@ -367,6 +375,10 @@ export const findFirstFile = (node) => {
     }
 
     return null;
+};
+
+export const getFolderNameFromWebkitRelativePath = (path) => {
+    return path.webkitRelativePath.split("/")[0];
 };
 
 // const loadProject = useCallback(async () => {

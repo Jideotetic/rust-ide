@@ -7,9 +7,11 @@ import {
     findFileInSrcFolder,
     findFirstFile,
     findFirstRsFile,
+    getFolderNameFromWebkitRelativePath,
     updateUrlWithProjectId,
     uploadAsZip,
 } from "../utils/utils";
+import { v4 as uuidv4 } from "uuid";
 
 function Entry({
     setFileTree,
@@ -27,31 +29,32 @@ function Entry({
     };
 
     const handleFolderFromInputChange = async (event) => {
-        const files = Array.from(event.target.files);
-
-        if (!files || files.length === 0) {
-            alert("Load a project with at least one file");
-            return;
-        }
-
-        const rootName = files[0].webkitRelativePath.split("/")[0];
-
         try {
+            const files = Array.from(event.target.files);
+
+            if (!files || files.length === 0) {
+                alert("Load a project with at least one file");
+                return;
+            }
+
+            // Get the folder name
+            const folderName = getFolderNameFromWebkitRelativePath(files[0]);
+
+            // Build file tree
             const children = buildFileTreeFromInputWebKitDirectory(files);
             const tree = {
-                id: Date.now(),
+                id: uuidv4(),
                 type: "folder",
-                name: rootName,
-                path: "/" + rootName,
+                name: folderName,
+                path: "/" + folderName,
                 children,
             };
-
             setFileTree(tree);
 
+            // Find the first file to open
             const fileInSrc = findFileInSrcFolder(tree);
             const fallbackRsFile = findFirstRsFile(tree);
             const firstFile = findFirstFile(tree);
-
             const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
 
             if (fileToOpen) {
@@ -62,27 +65,28 @@ function Entry({
                     tree
                 );
 
+                // Remove the default main.rs tab if it exists
                 setActiveTabs((tabs) => {
-                    const withoutMain = tabs.filter(
+                    const filteredOutDefaultMain = tabs.filter(
                         (tab) => tab.id !== MAIN_DOT_RS_ID
                     );
                     if (selectedTabId === MAIN_DOT_RS_ID) {
                         setSelectedTabId(fileToOpen.id);
                     }
-                    return withoutMain;
+                    return filteredOutDefaultMain;
                 });
             }
 
-            alert(`${rootName} folder uploaded successfully`);
+            alert(`Uploading ${folderName} folder...`);
 
             const res = await uploadAsZip(files);
 
-            console.log("Folder upload response:", res);
-
             updateUrlWithProjectId(res.projectId);
+
+            alert(`${folderName} uploaded successfully`);
         } catch (err) {
-            console.error("Folder upload failed:", err);
-            alert(`Folder upload failed: ${err.message}`);
+            console.error("Upload failed:", err);
+            alert(`Upload failed...Kindly retry`);
         }
     };
 
