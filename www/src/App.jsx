@@ -14,6 +14,7 @@ import {
     readFileAsText,
     sortTreeByTypeAndName,
     uploadAsZipForBuild,
+    uploadAsZipForTest,
 } from "./utils/utils.js";
 import * as monaco from "monaco-editor";
 import * as vscode from "vscode";
@@ -36,6 +37,7 @@ export default function App() {
     const [fileTree, setFileTree] = useState();
     const [loading, setLoading] = useState(false);
     const [building, setBuilding] = useState(false);
+    const [testing, setTesting] = useState(false);
     const [saving, setSaving] = useState(false);
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
@@ -292,6 +294,17 @@ export default function App() {
         setLoading(false);
     }, [fileTree]);
 
+    const handleTest = useCallback(async () => {
+        setTesting(true);
+        setLoading(true);
+        const res = await uploadAsZipForTest(fileTree);
+
+        alert(res.output);
+
+        setTesting(false);
+        setLoading(false);
+    }, [fileTree]);
+
     return (
         <PanelGroup className="h-full" direction="horizontal">
             {loading && (
@@ -367,12 +380,12 @@ export default function App() {
                                             // }
                                             handleBuild={handleBuild}
                                             building={building}
-                                            // handleTest={handleTest}
+                                            handleTest={handleTest}
                                             saving={saving}
                                             // building={building}
                                             // fileTree={fileTree}
                                             // downloading={downloading}
-                                            // testing={testing}
+                                            testing={testing}
                                         />
                                     )}
                                 </div>

@@ -291,6 +291,40 @@ export async function uploadAsZipForBuild(fileTree) {
     }
 }
 
+export async function uploadAsZipForTest(fileTree) {
+    const projectId = getProjectIdFromUrl();
+
+    if (!projectId) {
+        throw new Error("No project ID provided");
+    }
+
+    await populateFileTreeWithData(fileTree);
+
+    const zip = await zipFileTree(fileTree);
+    const content = await zip.generateAsync({ type: "blob" });
+
+    const rootFolderName = fileTree.name || "New Folder";
+
+    const formData = new FormData();
+    formData.append("file", content, `${rootFolderName}.zip`);
+    try {
+        const response = await fetch(
+            `${import.meta.env.VITE_BASE_URL}/api/projects/${projectId}/test`,
+            {
+                method: "POST",
+                body: formData,
+            }
+        );
+
+        if (!response.ok) throw new Error("Test failed");
+        alert("Test successful");
+        return response.json();
+    } catch (error) {
+        console.error("Test failed", error);
+        alert("Test failed...kindly try again");
+    }
+}
+
 export const findFilePathById = (node, id) => {
     if (node.id === id) {
         return node.fullPath || node.path || null;
