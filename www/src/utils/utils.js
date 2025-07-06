@@ -186,9 +186,9 @@ export async function downloadProjectAsZip(projectId) {
 
 export function buildTreeFromFiles(files, projectId) {
     const root = {
-        id: Date.now(),
+        id: uuidv4(),
         type: "folder",
-        name: "",
+        name: "New Folder",
         children: [],
         handle: null,
     };

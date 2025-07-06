@@ -307,47 +307,12 @@ export default function App() {
         setLoading(false);
     }, [fileTree]);
 
-    // const handleSaveFile = useCallback(() => {
-    //     if (!editorRef.current || !selectedTabId || !fileTree) return;
-
-    //     const updatedContent = editorRef.current.getValue();
-
-    //     // Update active tab content
-    //     setActiveTabs((tabs) =>
-    //         tabs.map((tab) =>
-    //             tab.id === selectedTabId
-    //                 ? { ...tab, content: updatedContent }
-    //                 : tab
-    //         )
-    //     );
-
-    //     // Update fileTree
-    //     const updateFileContent = (node) => {
-    //         if (!node) return null;
-    //         if (node.id === selectedTabId && node.type === "file") {
-    //             return { ...node, data: updatedContent };
-    //         }
-    //         if (node.children) {
-    //             return {
-    //                 ...node,
-    //                 children: node.children.map(updateFileContent),
-    //             };
-    //         }
-    //         return node;
-    //     };
-
-    //     const updatedTree = updateFileContent(fileTree);
-    //     setFileTree(updatedTree);
-
-    //     console.log(`Saved content for file ID: ${selectedTabId}`);
-    // }, [editorRef, selectedTabId, fileTree]);
-
     return (
         <PanelGroup className="h-full" direction="horizontal">
             {loading && (
-                <div className="absolute z-50 flex items-center w-full justify-center bottom-0">
+                <div className="absolute z-50 flex items-center w-full h-full justify-center bg-[#1e1e1e]/80">
                     <div className="text-white text-2xl text-center p-4">
-                        Loading Project...
+                        Loading...
                     </div>
                 </div>
             )}
@@ -381,18 +346,6 @@ export default function App() {
                             handleActiveEditorTabs={handleActiveEditorTabs}
                         />
                     )}
-
-                    {/* {fileTree && (
-                        <Entry
-                            setFileTree={setFileTree}
-                            fileTree={fileTree}
-                            setActiveTabs={setActiveTabs}
-                            setSelectedTabId={setSelectedTabId}
-                            selectedTabId={selectedTabId}
-                            handleActiveEditorTabs={handleActiveEditorTabs}
-                            MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
-                        />
-                    )} */}
                 </div>
             </Panel>
             <PanelResizeHandle className="w-[0.1px] bg-white" />

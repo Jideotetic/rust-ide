@@ -10,7 +10,6 @@ const ActionsDropdown = ({
     handleTest,
     saving,
     building,
-    fileTree,
     downloading,
     testing,
 }) => {
@@ -78,13 +77,13 @@ const ActionsDropdown = ({
 
                     {isOpen && (
                         <div className="absolute bottom-14 right-4 bg-[#1e1e1e] shadow-lg rounded border border-gray-600 z-50 min-w-32">
-                            <button
+                            {/* <button
                                 onClick={() => handleAction("download")}
                                 disabled={!fileTree}
                                 className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
                             >
                                 Download
-                            </button>
+                            </button> */}
                             <button
                                 onClick={() => handleAction("test")}
                                 className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
