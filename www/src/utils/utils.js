@@ -381,6 +381,40 @@ export const getFolderNameFromWebkitRelativePath = (path) => {
     return path.webkitRelativePath.split("/")[0];
 };
 
+export const closeDefaultMainTab = async (
+    tree,
+    handleActiveEditorTabs,
+    setActiveTabs,
+    selectedTabId,
+    setSelectedTabId,
+    MAIN_DOT_RS_ID
+) => {
+    const fileInSrc = findFileInSrcFolder(tree);
+    const fallbackRsFile = findFirstRsFile(tree);
+    const firstFile = findFirstFile(tree);
+    const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
+
+    if (fileToOpen) {
+        await handleActiveEditorTabs(
+            fileToOpen.id,
+            fileToOpen.name,
+            fileToOpen.data,
+            tree
+        );
+
+        // Remove the default main.rs tab if it exists
+        setActiveTabs((tabs) => {
+            const filteredOutDefaultMain = tabs.filter(
+                (tab) => tab.id !== MAIN_DOT_RS_ID
+            );
+            if (selectedTabId === MAIN_DOT_RS_ID) {
+                setSelectedTabId(fileToOpen.id);
+            }
+            return filteredOutDefaultMain;
+        });
+    }
+};
+
 // const loadProject = useCallback(async () => {
 //     try {
 //         setLoadingFiles(true);

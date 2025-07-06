@@ -4,9 +4,7 @@ import { FiFilePlus, FiArrowRight } from "react-icons/fi";
 import { useRef } from "react";
 import {
     buildFileTreeFromInputWebKitDirectory,
-    findFileInSrcFolder,
-    findFirstFile,
-    findFirstRsFile,
+    closeDefaultMainTab,
     getFolderNameFromWebkitRelativePath,
     updateUrlWithProjectId,
     uploadAsZip,
@@ -17,9 +15,9 @@ function Entry({
     setFileTree,
     setActiveTabs,
     selectedTabId,
+    setSelectedTabId,
     handleActiveEditorTabs,
     MAIN_DOT_RS_ID,
-    setSelectedTabId,
 }) {
     const folderInputRef = useRef();
     const fileInputRef = useRef();
@@ -52,30 +50,14 @@ function Entry({
             setFileTree(tree);
 
             // Find the first file to open
-            const fileInSrc = findFileInSrcFolder(tree);
-            const fallbackRsFile = findFirstRsFile(tree);
-            const firstFile = findFirstFile(tree);
-            const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
-
-            if (fileToOpen) {
-                await handleActiveEditorTabs(
-                    fileToOpen.id,
-                    fileToOpen.name,
-                    fileToOpen.data,
-                    tree
-                );
-
-                // Remove the default main.rs tab if it exists
-                setActiveTabs((tabs) => {
-                    const filteredOutDefaultMain = tabs.filter(
-                        (tab) => tab.id !== MAIN_DOT_RS_ID
-                    );
-                    if (selectedTabId === MAIN_DOT_RS_ID) {
-                        setSelectedTabId(fileToOpen.id);
-                    }
-                    return filteredOutDefaultMain;
-                });
-            }
+            closeDefaultMainTab(
+                tree,
+                handleActiveEditorTabs,
+                setActiveTabs,
+                selectedTabId,
+                setSelectedTabId,
+                MAIN_DOT_RS_ID
+            );
 
             alert(`Uploading ${folderName} folder...`);
 
@@ -121,30 +103,14 @@ function Entry({
             setFileTree(tree);
 
             // Find the first file to open
-            const fileInSrc = findFileInSrcFolder(tree);
-            const fallbackRsFile = findFirstRsFile(tree);
-            const firstFile = findFirstFile(tree);
-            const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
-
-            if (fileToOpen) {
-                await handleActiveEditorTabs(
-                    fileToOpen.id,
-                    fileToOpen.name,
-                    fileToOpen.data,
-                    tree
-                );
-
-                // Remove the default main.rs tab if it exists
-                setActiveTabs((tabs) => {
-                    const filteredOutDefaultMain = tabs.filter(
-                        (tab) => tab.id !== MAIN_DOT_RS_ID
-                    );
-                    if (selectedTabId === MAIN_DOT_RS_ID) {
-                        setSelectedTabId(fileToOpen.id);
-                    }
-                    return filteredOutDefaultMain;
-                });
-            }
+            closeDefaultMainTab(
+                tree,
+                handleActiveEditorTabs,
+                setActiveTabs,
+                selectedTabId,
+                setSelectedTabId,
+                MAIN_DOT_RS_ID
+            );
 
             alert(`Uploading files...`);
 
