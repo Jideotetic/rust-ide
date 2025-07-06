@@ -184,7 +184,7 @@ export async function downloadProjectAsZip(projectId) {
     }
 }
 
-function buildTreeFromFiles(files, projectId) {
+export function buildTreeFromFiles(files, projectId) {
     const root = {
         id: Date.now(),
         type: "folder",
@@ -224,6 +224,17 @@ function buildTreeFromFiles(files, projectId) {
     return root.children.length === 1 ? root.children[0] : root;
 }
 
+export async function populateFileTreeWithData(node) {
+    if (node.type === "folder") {
+        for (const child of node.children || []) {
+            await populateFileTreeWithData(child);
+        }
+    } else if (node.type === "file" && !node.data) {
+        // Read content only if not already present
+        node.data = await node.file.text(); // Assumes File API
+    }
+}
+
 export async function zipFileTree(fileTree) {
     const zip = new JSZip();
 
@@ -238,6 +249,7 @@ export async function zipFileTree(fileTree) {
             }
         } else if (node.type === "file") {
             const content = node.data ?? "";
+            console.log(content);
             zip.file(currentPath, content);
         }
     };
@@ -253,7 +265,9 @@ export async function uploadAsZipForBuild(fileTree) {
         throw new Error("No project ID provided");
     }
 
-    const zip = await zipFileTree(fileTree); // <--- uses utility above
+    await populateFileTreeWithData(fileTree);
+
+    const zip = await zipFileTree(fileTree);
     const content = await zip.generateAsync({ type: "blob" });
 
     console.log(fileTree);

@@ -37,6 +37,7 @@ export default function App() {
     const [selectedTabId, setSelectedTabId] = useState(MAIN_DOT_RS_ID);
     const [fileTree, setFileTree] = useState();
     const [loading, setLoading] = useState(false);
+    const [building, setBuilding] = useState(false);
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
 
@@ -297,9 +298,13 @@ export default function App() {
     }, [editorRef, selectedTabId, fileTree]);
 
     const handleBuild = useCallback(async () => {
+        setBuilding(true);
+        setLoading(true);
         const res = await uploadAsZipForBuild(fileTree);
 
         console.log("Build response:", res);
+        setBuilding(false);
+        setLoading(false);
     }, [fileTree]);
 
     // const handleSaveFile = useCallback(() => {
@@ -420,6 +425,7 @@ export default function App() {
                                             //     handleDownloadProject
                                             // }
                                             handleBuild={handleBuild}
+                                            building={building}
                                             // handleTest={handleTest}
                                             // saving={saving}
                                             // building={building}
