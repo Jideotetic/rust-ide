@@ -230,6 +230,62 @@ function buildTreeFromFiles(files, projectId) {
     return root.children.length === 1 ? root.children[0] : root;
 }
 
+export async function zipFileTree(fileTree) {
+    const zip = new JSZip();
+
+    const addNodeToZip = async (node, parentPath = "") => {
+        const currentPath = parentPath
+            ? `${parentPath}/${node.name}`
+            : node.name;
+
+        if (node.type === "folder") {
+            for (const child of node.children || []) {
+                await addNodeToZip(child, currentPath);
+            }
+        } else if (node.type === "file") {
+            const content = node.data ?? "";
+            zip.file(currentPath, content);
+        }
+    };
+
+    await addNodeToZip(fileTree);
+    return zip;
+}
+
+export async function uploadAsZipForBuild(fileTree) {
+    const projectId = getProjectIdFromUrl();
+
+    if (!projectId) {
+        throw new Error("No project ID provided");
+    }
+
+    const zip = await zipFileTree(fileTree); // <--- uses utility above
+    const content = await zip.generateAsync({ type: "blob" });
+
+    console.log(fileTree);
+
+    const rootFolderName = fileTree.name || "New Folder";
+
+    const formData = new FormData();
+    formData.append("file", content, `${rootFolderName}.zip`);
+    try {
+        const response = await fetch(
+            `${import.meta.env.VITE_BASE_URL}/api/projects/${projectId}/build`,
+            {
+                method: "POST",
+                body: formData,
+            }
+        );
+
+        if (!response.ok) throw new Error("Upload failed");
+        alert("Project uploaded successfully for building");
+        return response.json();
+    } catch (error) {
+        console.error("Zip upload failed:", error);
+        alert("Zip upload failed");
+    }
+}
+
 export const findFilePathById = (node, id) => {
     if (node.id === id) {
         return node.fullPath || node.path || null;
