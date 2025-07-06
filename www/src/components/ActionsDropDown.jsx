@@ -59,7 +59,7 @@ const ActionsDropdown = ({
             ref={dropdownRef}
         >
             {saving ? (
-                "Saving file..."
+                "Saving..."
             ) : building ? (
                 "Building..."
             ) : downloading ? (

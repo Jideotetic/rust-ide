@@ -36,6 +36,7 @@ export default function App() {
     const [fileTree, setFileTree] = useState();
     const [loading, setLoading] = useState(false);
     const [building, setBuilding] = useState(false);
+    const [saving, setSaving] = useState(false);
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
 
@@ -217,6 +218,8 @@ export default function App() {
     const handleSaveFile = useCallback(async () => {
         if (!editorRef.current || !selectedTabId) return;
 
+        setSaving(true);
+
         const currentContent = editorRef.current.getValue();
 
         const projectId = getProjectIdFromUrl();
@@ -272,19 +275,19 @@ export default function App() {
             // Update editor content
             editorRef.current.setValue(formattedContent);
 
-            console.log("File formatted and saved");
+            setSaving(false);
+            alert("File saved and formatted successfully!");
         } catch (err) {
             console.error("Formatting failed:", err);
-            alert("Error formatting file: " + err.message);
+            alert("Formatting failed");
         }
     }, [editorRef, selectedTabId, fileTree]);
 
     const handleBuild = useCallback(async () => {
         setBuilding(true);
         setLoading(true);
-        const res = await uploadAsZipForBuild(fileTree);
+        await uploadAsZipForBuild(fileTree);
 
-        console.log("Build response:", res);
         setBuilding(false);
         setLoading(false);
     }, [fileTree]);
@@ -365,7 +368,7 @@ export default function App() {
                                             handleBuild={handleBuild}
                                             building={building}
                                             // handleTest={handleTest}
-                                            // saving={saving}
+                                            saving={saving}
                                             // building={building}
                                             // fileTree={fileTree}
                                             // downloading={downloading}
