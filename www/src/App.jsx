@@ -15,6 +15,7 @@ import {
     getProjectIdFromUrl,
     readFileAsText,
     sortTreeByTypeAndName,
+    uploadAsZipForBuild,
 } from "./utils/utils.js";
 import * as monaco from "monaco-editor";
 import * as vscode from "vscode";
@@ -289,6 +290,12 @@ export default function App() {
         }
     }, [editorRef, selectedTabId, fileTree]);
 
+    const handleBuild = useCallback(async () => {
+        const res = await uploadAsZipForBuild(fileTree);
+
+        console.log("Build response:", res);
+    }, [fileTree]);
+
     // const handleSaveFile = useCallback(() => {
     //     if (!editorRef.current || !selectedTabId || !fileTree) return;
 
@@ -389,7 +396,7 @@ export default function App() {
                                             // handleDownloadProject={
                                             //     handleDownloadProject
                                             // }
-                                            // handleBuild={handleBuild}
+                                            handleBuild={handleBuild}
                                             // handleTest={handleTest}
                                             // saving={saving}
                                             // building={building}
