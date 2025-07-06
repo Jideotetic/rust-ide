@@ -36,6 +36,7 @@ export default function App() {
     ]);
     const [selectedTabId, setSelectedTabId] = useState(MAIN_DOT_RS_ID);
     const [fileTree, setFileTree] = useState();
+    const [loading, setLoading] = useState(false);
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
 
@@ -57,6 +58,7 @@ export default function App() {
         const loadProjectFromUrl = async () => {
             const projectId = getProjectIdFromUrl();
             if (projectId) {
+                setLoading(true);
                 const tree = await downloadProjectAsZip(projectId);
 
                 setFileTree(tree);
@@ -85,10 +87,13 @@ export default function App() {
                         return withoutMain;
                     });
                 }
+
+                setLoading(false);
             }
         };
 
         loadProjectFromUrl();
+
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -333,6 +338,11 @@ export default function App() {
 
     return (
         <PanelGroup className="h-full" direction="horizontal">
+            {loading && (
+                <div className="absolute z-50 flex items-center justify-center w-full h-full bg-[#1e1e1e]/80">
+                    <div className="text-white">Loading Project...</div>
+                </div>
+            )}
             <Panel
                 collapsedSize={0}
                 collapsible
