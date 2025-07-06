@@ -4,9 +4,7 @@ import { FiFilePlus, FiArrowRight } from "react-icons/fi";
 import { useRef } from "react";
 import {
     buildFileTreeFromInputWebKitDirectory,
-    findFileInSrcFolder,
-    findFirstFile,
-    findFirstRsFile,
+    closeDefaultMainTab,
     getFolderNameFromWebkitRelativePath,
     updateUrlWithProjectId,
     uploadAsZip,
@@ -17,9 +15,9 @@ function Entry({
     setFileTree,
     setActiveTabs,
     selectedTabId,
+    setSelectedTabId,
     handleActiveEditorTabs,
     MAIN_DOT_RS_ID,
-    setSelectedTabId,
 }) {
     const folderInputRef = useRef();
     const fileInputRef = useRef();
@@ -52,30 +50,14 @@ function Entry({
             setFileTree(tree);
 
             // Find the first file to open
-            const fileInSrc = findFileInSrcFolder(tree);
-            const fallbackRsFile = findFirstRsFile(tree);
-            const firstFile = findFirstFile(tree);
-            const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
-
-            if (fileToOpen) {
-                await handleActiveEditorTabs(
-                    fileToOpen.id,
-                    fileToOpen.name,
-                    fileToOpen.data,
-                    tree
-                );
-
-                // Remove the default main.rs tab if it exists
-                setActiveTabs((tabs) => {
-                    const filteredOutDefaultMain = tabs.filter(
-                        (tab) => tab.id !== MAIN_DOT_RS_ID
-                    );
-                    if (selectedTabId === MAIN_DOT_RS_ID) {
-                        setSelectedTabId(fileToOpen.id);
-                    }
-                    return filteredOutDefaultMain;
-                });
-            }
+            closeDefaultMainTab(
+                tree,
+                handleActiveEditorTabs,
+                setActiveTabs,
+                selectedTabId,
+                setSelectedTabId,
+                MAIN_DOT_RS_ID
+            );
 
             alert(`Uploading ${folderName} folder...`);
 
@@ -95,70 +77,51 @@ function Entry({
     };
 
     const handleFileFromInputChange = async (event) => {
-        const files = Array.from(event.target.files);
-
-        if (!files || files.length === 0) {
-            alert("Load a project with at least one file");
-            return;
-        }
-
         try {
-            const file = files[0];
+            const files = Array.from(event.target.files);
+
+            if (!files || files.length === 0) {
+                alert("Load a project with at least one file");
+                return;
+            }
+
+            const children = files.map((file) => ({
+                id: uuidv4(),
+                type: "file",
+                name: file.name,
+                path: `/${file.name}`,
+                file,
+            }));
 
             const tree = {
-                id: Date.now(),
+                id: uuidv4(),
                 type: "folder",
                 name: "New Folder",
                 path: "/New Folder",
-                children: [
-                    {
-                        id: Date.now() + 1,
-                        type: "file",
-                        name: file.name,
-                        path: `/${file.name}`,
-                        file,
-                    },
-                ],
+                children,
             };
-
             setFileTree(tree);
-            const fileInSrc = findFileInSrcFolder(tree);
-            const fallbackRsFile = findFirstRsFile(tree);
-            const firstFile = findFirstFile(tree);
 
-            const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
+            // Find the first file to open
+            closeDefaultMainTab(
+                tree,
+                handleActiveEditorTabs,
+                setActiveTabs,
+                selectedTabId,
+                setSelectedTabId,
+                MAIN_DOT_RS_ID
+            );
 
-            console.log("File to open:", fileToOpen);
-
-            if (fileToOpen) {
-                await handleActiveEditorTabs(
-                    fileToOpen.id,
-                    fileToOpen.name,
-                    fileToOpen.data,
-                    tree
-                );
-
-                setActiveTabs((tabs) => {
-                    const withoutMain = tabs.filter(
-                        (tab) => tab.id !== MAIN_DOT_RS_ID
-                    );
-                    if (selectedTabId === MAIN_DOT_RS_ID) {
-                        setSelectedTabId(fileToOpen.id);
-                    }
-                    return withoutMain;
-                });
-            }
-
-            alert(`${file.name} file uploaded successfully!`);
+            alert(`Uploading files...`);
 
             const res = await uploadAsZip(files);
 
-            console.log("Folder upload response:", res);
-
             updateUrlWithProjectId(res.projectId);
+
+            alert(`Files uploaded successfully`);
         } catch (error) {
-            console.error("File upload failed:", error);
-            alert(`File upload failed: ${error.message}`);
+            console.error("Upload failed:", error);
+            alert(`Upload failed...Kindly retry`);
         }
     };
 

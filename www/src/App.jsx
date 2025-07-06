@@ -6,12 +6,10 @@ import useTree from "./hooks/useTree.js";
 import TabButton from "./components/TabButton.jsx";
 import ActionsDropdown from "./components/ActionsDropDown.jsx";
 import {
+    closeDefaultMainTab,
     downloadProjectAsZip,
-    findFileInSrcFolder,
     findFileNodeById,
     findFilePathById,
-    findFirstFile,
-    findFirstRsFile,
     getProjectIdFromUrl,
     readFileAsText,
     sortTreeByTypeAndName,
@@ -65,30 +63,14 @@ export default function App() {
 
                 setFileTree(tree);
 
-                const fileInSrc = findFileInSrcFolder(tree);
-                const fallbackRsFile = findFirstRsFile(tree);
-                const firstFile = findFirstFile(tree);
-
-                const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
-
-                if (fileToOpen) {
-                    await handleActiveEditorTabs(
-                        fileToOpen.id,
-                        fileToOpen.name,
-                        fileToOpen.data,
-                        tree
-                    );
-
-                    setActiveTabs((tabs) => {
-                        const withoutMain = tabs.filter(
-                            (tab) => tab.id !== MAIN_DOT_RS_ID
-                        );
-                        if (selectedTabId === MAIN_DOT_RS_ID) {
-                            setSelectedTabId(fileToOpen.id);
-                        }
-                        return withoutMain;
-                    });
-                }
+                closeDefaultMainTab(
+                    tree,
+                    handleActiveEditorTabs,
+                    setActiveTabs,
+                    selectedTabId,
+                    setSelectedTabId,
+                    MAIN_DOT_RS_ID
+                );
 
                 setLoading(false);
             }
@@ -307,54 +289,21 @@ export default function App() {
         setLoading(false);
     }, [fileTree]);
 
-    // const handleSaveFile = useCallback(() => {
-    //     if (!editorRef.current || !selectedTabId || !fileTree) return;
-
-    //     const updatedContent = editorRef.current.getValue();
-
-    //     // Update active tab content
-    //     setActiveTabs((tabs) =>
-    //         tabs.map((tab) =>
-    //             tab.id === selectedTabId
-    //                 ? { ...tab, content: updatedContent }
-    //                 : tab
-    //         )
-    //     );
-
-    //     // Update fileTree
-    //     const updateFileContent = (node) => {
-    //         if (!node) return null;
-    //         if (node.id === selectedTabId && node.type === "file") {
-    //             return { ...node, data: updatedContent };
-    //         }
-    //         if (node.children) {
-    //             return {
-    //                 ...node,
-    //                 children: node.children.map(updateFileContent),
-    //             };
-    //         }
-    //         return node;
-    //     };
-
-    //     const updatedTree = updateFileContent(fileTree);
-    //     setFileTree(updatedTree);
-
-    //     console.log(`Saved content for file ID: ${selectedTabId}`);
-    // }, [editorRef, selectedTabId, fileTree]);
-
     return (
         <PanelGroup className="h-full" direction="horizontal">
             {loading && (
-                <div className="absolute z-50 flex items-center w-full justify-center bottom-0">
+                <div className="absolute z-50 flex items-center w-full h-full justify-center bg-[#1e1e1e]/80">
                     <div className="text-white text-2xl text-center p-4">
-                        Loading Project...
+                        Loading...
                     </div>
                 </div>
             )}
             <Panel
                 collapsedSize={0}
                 collapsible
-                style={{ width: "280px", minWidth: "280px", maxWidth: "280px" }}
+                defaultSize={30}
+                minSize={0}
+                maxSize={30}
                 className="flex flex-col border-r border-r-white"
             >
                 <div className="px-4 pt-3 pb-2 border-b border-b-white">
@@ -364,10 +313,9 @@ export default function App() {
                     {!fileTree ? (
                         <Entry
                             setFileTree={setFileTree}
-                            fileTree={fileTree}
                             setActiveTabs={setActiveTabs}
-                            setSelectedTabId={setSelectedTabId}
                             selectedTabId={selectedTabId}
+                            setSelectedTabId={setSelectedTabId}
                             handleActiveEditorTabs={handleActiveEditorTabs}
                             MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
                         />
@@ -381,18 +329,6 @@ export default function App() {
                             handleActiveEditorTabs={handleActiveEditorTabs}
                         />
                     )}
-
-                    {/* {fileTree && (
-                        <Entry
-                            setFileTree={setFileTree}
-                            fileTree={fileTree}
-                            setActiveTabs={setActiveTabs}
-                            setSelectedTabId={setSelectedTabId}
-                            selectedTabId={selectedTabId}
-                            handleActiveEditorTabs={handleActiveEditorTabs}
-                            MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
-                        />
-                    )} */}
                 </div>
             </Panel>
             <PanelResizeHandle className="w-[0.1px] bg-white" />
@@ -438,7 +374,7 @@ export default function App() {
                                     )}
                                 </div>
                             </Panel>
-                            <PanelResizeHandle className="w-1 bg-black" />
+                            <PanelResizeHandle className="w-[0.5px] bg-white" />
                             <Panel
                                 collapsedSize={0}
                                 collapsible
