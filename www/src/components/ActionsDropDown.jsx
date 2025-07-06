@@ -56,7 +56,7 @@ const ActionsDropdown = ({
 
     return (
         <div
-            className="p-2 bg-green-700 text-white absolute rounded bottom-10 right-4 z-50 hover:bg-green-600 flex items-center gap-1"
+            className="p-2 bg-green-700 text-white absolute rounded bottom-10 right-4 z-40 hover:bg-green-600 flex items-center gap-1"
             ref={dropdownRef}
         >
             {saving ? (

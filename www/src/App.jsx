@@ -57,6 +57,7 @@ export default function App() {
     useEffect(() => {
         const loadProjectFromUrl = async () => {
             const projectId = getProjectIdFromUrl();
+
             if (projectId) {
                 setLoading(true);
                 const tree = await downloadProjectAsZip(projectId);
@@ -340,7 +341,7 @@ export default function App() {
         <PanelGroup className="h-full" direction="horizontal">
             {loading && (
                 <div className="absolute z-50 flex items-center justify-center w-full h-full bg-[#1e1e1e]/80">
-                    <div className="text-white">Loading Project...</div>
+                    <div className="text-white">Loading...</div>
                 </div>
             )}
             <Panel
@@ -373,6 +374,18 @@ export default function App() {
                             handleActiveEditorTabs={handleActiveEditorTabs}
                         />
                     )}
+
+                    {/* {fileTree && (
+                        <Entry
+                            setFileTree={setFileTree}
+                            fileTree={fileTree}
+                            setActiveTabs={setActiveTabs}
+                            setSelectedTabId={setSelectedTabId}
+                            selectedTabId={selectedTabId}
+                            handleActiveEditorTabs={handleActiveEditorTabs}
+                            MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
+                        />
+                    )} */}
                 </div>
             </Panel>
             <PanelResizeHandle className="w-[0.1px] bg-white" />
