@@ -48,7 +48,7 @@ export default function App() {
             model: monaco.editor.createModel(
                 "",
                 "rust",
-                vscode.Uri.file(`root/sorobuild-ide-backend/src/main.rs`)
+                vscode.Uri.file(`app/src/main.rs`)
             ),
             theme: "vs-dark",
             automaticLayout: true,
