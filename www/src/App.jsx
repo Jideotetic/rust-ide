@@ -345,8 +345,10 @@ export default function App() {
     return (
         <PanelGroup className="h-full" direction="horizontal">
             {loading && (
-                <div className="absolute z-50 flex items-center justify-center w-full h-full bg-[#1e1e1e]/80">
-                    <div className="text-white">Loading...</div>
+                <div className="absolute z-50 flex items-center w-full justify-center bottom-0">
+                    <div className="text-white text-2xl text-center p-4">
+                        Loading Project...
+                    </div>
                 </div>
             )}
             <Panel
