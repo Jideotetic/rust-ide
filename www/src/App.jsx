@@ -41,6 +41,7 @@ export default function App() {
     const [testing, setTesting] = useState(false);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [expandedFolderIds, setExpandedFolderIds] = useState([]);
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
 
@@ -80,7 +81,8 @@ export default function App() {
                     setActiveTabs,
                     selectedTabId,
                     setSelectedTabId,
-                    MAIN_DOT_RS_ID
+                    MAIN_DOT_RS_ID,
+                    setExpandedFolderIds
                 );
 
                 setLoading(false);
@@ -379,6 +381,7 @@ export default function App() {
                             setSelectedTabId={setSelectedTabId}
                             handleActiveEditorTabs={handleActiveEditorTabs}
                             MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
+                            setExpandedFolderIds={setExpandedFolderIds}
                         />
                     ) : (
                         <FileTree
@@ -387,7 +390,9 @@ export default function App() {
                             handleAddFolder={handleAddFolder}
                             handleRename={handleRename}
                             fileTree={fileTree}
+                            selectedTabId={selectedTabId}
                             handleActiveEditorTabs={handleActiveEditorTabs}
+                            expandedFolderIds={expandedFolderIds}
                         />
                     )}
                 </div>
