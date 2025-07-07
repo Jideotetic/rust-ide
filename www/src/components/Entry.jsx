@@ -18,6 +18,7 @@ function Entry({
     setSelectedTabId,
     handleActiveEditorTabs,
     MAIN_DOT_RS_ID,
+    setExpandedFolderIds,
 }) {
     const folderInputRef = useRef();
     const fileInputRef = useRef();
@@ -56,7 +57,8 @@ function Entry({
                 setActiveTabs,
                 selectedTabId,
                 setSelectedTabId,
-                MAIN_DOT_RS_ID
+                MAIN_DOT_RS_ID,
+                setExpandedFolderIds
             );
 
             alert(`Uploading ${folderName} folder...`);
@@ -109,7 +111,8 @@ function Entry({
                 setActiveTabs,
                 selectedTabId,
                 setSelectedTabId,
-                MAIN_DOT_RS_ID
+                MAIN_DOT_RS_ID,
+                setExpandedFolderIds
             );
 
             alert(`Uploading files...`);

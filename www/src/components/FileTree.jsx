@@ -11,8 +11,12 @@ function FileTree({
     handleAddFolder,
     handleDelete,
     handleRename,
+    selectedTabId,
+    expandedFolderIds = [],
 }) {
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(
+        expandedFolderIds.includes(fileTree.id)
+    );
     const [showOptions, setShowOptions] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isCreating, setIsCreating] = useState({
@@ -222,6 +226,8 @@ function FileTree({
                                 handleRename={handleRename}
                                 handleActiveEditorTabs={handleActiveEditorTabs}
                                 handleDelete={handleDelete}
+                                selectedTabId={selectedTabId}
+                                expandedFolderIds={expandedFolderIds}
                             />
                         ))}
                     </div>
@@ -241,7 +247,11 @@ function FileTree({
             }}
             onMouseOver={() => setShowOptions(true)}
             onMouseLeave={() => setShowOptions(false)}
-            className="relative text-xs flex items-center justify-between select-none cursor-pointer py-1 px-2 pr-1 text-white rounded hover:bg-gray-500"
+            className={`relative text-xs flex items-center justify-between select-none cursor-pointer py-1 px-2 pr-1 text-white rounded hover:bg-gray-500 ${
+                fileTree.id === selectedTabId
+                    ? "bg-gray-700 font-bold"
+                    : "hover:bg-gray-500"
+            }`}
         >
             <div className="flex items-center gap-1.5 flex-1">
                 <FiFile size={12} />

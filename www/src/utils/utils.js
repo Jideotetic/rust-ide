@@ -6,6 +6,8 @@ export const buildFileTreeFromInputWebKitDirectory = (files) => {
     const children = [];
 
     for (const file of files) {
+        if (file.webkitRelativePath.includes("/target/")) continue;
+
         const parts = file.webkitRelativePath.split("/");
 
         let current = children;
@@ -113,7 +115,11 @@ export async function uploadAsZip(files) {
 
         // Add files to the zip
         Array.from(files).forEach((file) => {
-            zip.file(file.webkitRelativePath || file.name, file);
+            const path = file.webkitRelativePath || file.name;
+
+            if (path.includes("/target/")) return;
+
+            zip.file(path, file);
         });
 
         const content = await zip.generateAsync({ type: "blob" });
@@ -452,7 +458,8 @@ export const closeDefaultMainTab = async (
     setActiveTabs,
     selectedTabId,
     setSelectedTabId,
-    MAIN_DOT_RS_ID
+    MAIN_DOT_RS_ID,
+    setExpandedFolderIds
 ) => {
     const fileInSrc = findFileInSrcFolder(tree);
     const fallbackRsFile = findFirstRsFile(tree);
@@ -460,6 +467,9 @@ export const closeDefaultMainTab = async (
     const fileToOpen = fileInSrc || fallbackRsFile || firstFile;
 
     if (fileToOpen) {
+        const ancestorIds = findAncestorsById(tree, fileToOpen.id);
+        setExpandedFolderIds(ancestorIds);
+
         await handleActiveEditorTabs(
             fileToOpen.id,
             fileToOpen.name,
@@ -479,3 +489,22 @@ export const closeDefaultMainTab = async (
         });
     }
 };
+
+export function findAncestorsById(tree, targetId, path = []) {
+    if (!tree || tree.type !== "folder") return [];
+
+    for (const child of tree.children || []) {
+        if (child.id === targetId) {
+            return [...path, tree.id];
+        }
+        if (child.type === "folder") {
+            const result = findAncestorsById(child, targetId, [
+                ...path,
+                tree.id,
+            ]);
+            if (result.length) return result;
+        }
+    }
+
+    return [];
+}
