@@ -101,9 +101,20 @@ export default function App() {
 
     useEffect(() => {
         const handleBeforeUnload = (e) => {
-            if (fileTreeRef.current) {
+            const projectId = getProjectIdFromUrl();
+            if (fileTreeRef.current && projectId) {
                 e.preventDefault();
                 e.returnValue = "";
+
+                fetch(
+                    `${
+                        import.meta.env.VITE_BASE_URL
+                    }/api/projects/${projectId}/delete`,
+                    {
+                        method: "POST",
+                        keepalive: true,
+                    }
+                );
             }
         };
 
