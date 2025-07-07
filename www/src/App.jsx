@@ -14,6 +14,7 @@ import {
     readFileAsText,
     sortTreeByTypeAndName,
     uploadAsZipForBuild,
+    uploadAsZipForDB,
     uploadAsZipForTest,
 } from "./utils/utils.js";
 import * as monaco from "monaco-editor";
@@ -39,8 +40,15 @@ export default function App() {
     const [building, setBuilding] = useState(false);
     const [testing, setTesting] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
+
+    const fileTreeRef = useRef();
+
+    useEffect(() => {
+        fileTreeRef.current = fileTree;
+    }, [fileTree]);
 
     const mountEditor = (node) => {
         if (!node || editorRef.current) return;
@@ -90,6 +98,21 @@ export default function App() {
         const tab = activeTabs.find((t) => t.id === selectedTabId);
         if (tab) editorRef.current.setValue(tab.content);
     }, [selectedTabId, activeTabs]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (fileTreeRef.current) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+        };
+    }, []);
 
     const handleRename = (id, newName) => {
         setFileTree(updateNode(fileTree, id, newName));
@@ -305,6 +328,17 @@ export default function App() {
         setLoading(false);
     }, [fileTree]);
 
+    const handleUpload = useCallback(async () => {
+        setUploading(true);
+        setLoading(true);
+        await uploadAsZipForDB(fileTree);
+
+        alert(`Project uploaded successfully`);
+
+        setUploading(false);
+        setLoading(false);
+    }, [fileTree]);
+
     return (
         <PanelGroup className="h-full" direction="horizontal">
             {loading && (
@@ -375,16 +409,12 @@ export default function App() {
                                     {fileTree && (
                                         <ActionsDropdown
                                             handleSaveFile={handleSaveFile}
-                                            // handleDownloadProject={
-                                            //     handleDownloadProject
-                                            // }
+                                            handleUpload={handleUpload}
                                             handleBuild={handleBuild}
                                             building={building}
                                             handleTest={handleTest}
                                             saving={saving}
-                                            // building={building}
-                                            // fileTree={fileTree}
-                                            // downloading={downloading}
+                                            uploading={uploading}
                                             testing={testing}
                                         />
                                     )}
