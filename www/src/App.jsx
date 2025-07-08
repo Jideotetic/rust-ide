@@ -8,13 +8,16 @@ import ActionsDropdown from "./components/ActionsDropDown.jsx";
 import {
     closeDefaultMainTab,
     downloadProjectAsZip,
+    findAncestorsById,
     findFileNodeById,
     findFilePathById,
     getProjectIdFromUrl,
     readFileAsText,
+    saveOnTabChange,
     sortTreeByTypeAndName,
     uploadAsZipForBuild,
     uploadAsZipForDB,
+    uploadAsZipForFormatting,
     uploadAsZipForTest,
 } from "./utils/utils.js";
 import * as monaco from "monaco-editor";
@@ -39,13 +42,12 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [building, setBuilding] = useState(false);
     const [testing, setTesting] = useState(false);
-    const [saving, setSaving] = useState(false);
+    const [formatting, setFormatting] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [expandedFolderIds, setExpandedFolderIds] = useState([]);
     const [result, setResult] = useState("");
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
-
     const fileTreeRef = useRef();
 
     useEffect(() => {
@@ -99,7 +101,12 @@ export default function App() {
         if (!editorRef.current) return;
 
         const tab = activeTabs.find((t) => t.id === selectedTabId);
-        if (tab) editorRef.current.setValue(tab.content);
+        if (tab) {
+            const model = editorRef.current.getModel?.();
+            if (model && tab?.content !== undefined) {
+                model.setValue(tab.content);
+            }
+        }
     }, [selectedTabId, activeTabs]);
 
     useEffect(() => {
@@ -254,82 +261,62 @@ export default function App() {
         [editorRef, selectedTabId, activeTabs, fileTree]
     );
 
-    const handleSaveFile = useCallback(async () => {
+    const handleFormat = useCallback(async () => {
         if (!editorRef.current || !selectedTabId) return;
 
-        setSaving(true);
+        setFormatting(true);
+        setLoading(true);
 
-        const currentContent = editorRef.current.getValue();
+        const updatedTree = saveOnTabChange(
+            editorRef,
+            setActiveTabs,
+            selectedTabId,
+            fileTree,
+            setFileTree
+        );
 
-        const projectId = getProjectIdFromUrl();
+        const formattedTree = await uploadAsZipForFormatting(
+            updatedTree,
+            setResult
+        );
 
-        try {
-            const res = await fetch(
-                `${
-                    import.meta.env.VITE_BASE_URL
-                }/api/projects/${projectId}/save`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ content: currentContent }),
+        if (formattedTree) {
+            setFileTree(formattedTree);
+
+            const updatedTabs = activeTabs.map((tab) => {
+                const formattedNode = findFileNodeById(formattedTree, tab.id);
+                if (formattedNode?.data) {
+                    if (tab.id === selectedTabId) {
+                        editorRef.current.setValue(formattedNode.data);
+                    }
+                    return { ...tab, content: formattedNode.data };
                 }
-            );
+                return tab;
+            });
 
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(errText || "Failed to format content");
-            }
-
-            const { content: formattedContent } = await res.json();
-
-            // Update active tab content
-            setActiveTabs((tabs) =>
-                tabs.map((tab) =>
-                    tab.id === selectedTabId
-                        ? { ...tab, content: formattedContent }
-                        : tab
-                )
-            );
-
-            // Update file tree
-            const updateFileContent = (node) => {
-                if (!node) return null;
-                if (node.id === selectedTabId && node.type === "file") {
-                    return { ...node, data: formattedContent };
-                }
-                if (node.children) {
-                    return {
-                        ...node,
-                        children: node.children.map(updateFileContent),
-                    };
-                }
-                return node;
-            };
-
-            const updatedTree = updateFileContent(fileTree);
-            setFileTree(updatedTree);
-
-            // Update editor content
-            editorRef.current.setValue(formattedContent);
-
-            setSaving(false);
-            alert("File saved and formatted successfully!");
-        } catch (err) {
-            console.error("Formatting failed:", err);
-            alert("Formatting failed");
+            setActiveTabs(updatedTabs);
         }
-    }, [editorRef, selectedTabId, fileTree]);
+
+        setFormatting(false);
+        setLoading(false);
+    }, [selectedTabId, fileTree, activeTabs]);
 
     const handleBuild = useCallback(async () => {
         setBuilding(true);
         setLoading(true);
-        await uploadAsZipForBuild(fileTree, setResult);
+
+        const updatedTree = saveOnTabChange(
+            editorRef,
+            setActiveTabs,
+            selectedTabId,
+            fileTree,
+            setFileTree
+        );
+        await uploadAsZipForBuild(updatedTree, setResult);
 
         setBuilding(false);
         setLoading(false);
-    }, [fileTree]);
+    }, [fileTree, selectedTabId]);
 
     const handleTest = useCallback(async () => {
         setTesting(true);
@@ -413,9 +400,25 @@ export default function App() {
                                             isSelected={
                                                 tab.id === selectedTabId
                                             }
-                                            onClick={() =>
-                                                setSelectedTabId(tab.id)
-                                            }
+                                            onClick={() => {
+                                                saveOnTabChange(
+                                                    editorRef,
+                                                    setActiveTabs,
+                                                    selectedTabId,
+                                                    fileTree,
+                                                    setFileTree
+                                                );
+                                                setSelectedTabId(tab.id);
+                                                const ancestorIds =
+                                                    findAncestorsById(
+                                                        fileTree,
+                                                        tab.id
+                                                    );
+
+                                                setExpandedFolderIds(
+                                                    ancestorIds
+                                                );
+                                            }}
                                         />
                                     ))}
                                 </div>
@@ -425,12 +428,12 @@ export default function App() {
                                 >
                                     {fileTree && (
                                         <ActionsDropdown
-                                            handleSaveFile={handleSaveFile}
+                                            handleFormat={handleFormat}
                                             handleUpload={handleUpload}
                                             handleBuild={handleBuild}
                                             building={building}
                                             handleTest={handleTest}
-                                            saving={saving}
+                                            formatting={formatting}
                                             uploading={uploading}
                                             testing={testing}
                                         />

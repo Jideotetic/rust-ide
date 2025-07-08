@@ -316,6 +316,76 @@ export async function uploadAsZipForBuild(fileTree, setResult) {
     }
 }
 
+export async function uploadAsZipForFormatting(fileTree, setResult) {
+    const projectId = getProjectIdFromUrl();
+
+    if (!projectId) {
+        throw new Error("No project ID provided");
+    }
+
+    await populateFileTreeWithData(fileTree);
+
+    const zip = await zipFileTree(fileTree);
+    const content = await zip.generateAsync({ type: "blob" });
+
+    const rootFolderName = fileTree.name || "New Folder";
+
+    const formData = new FormData();
+    formData.append("file", content, `${rootFolderName}.zip`);
+    try {
+        const response = await fetch(
+            `${import.meta.env.VITE_BASE_URL}/api/projects/${projectId}/format`,
+            {
+                method: "POST",
+                body: formData,
+            }
+        );
+
+        if (response.status === 400) {
+            const result = await response.json();
+            alert("Format failed");
+            setResult(`Format failed ${result.output}`);
+            return;
+        }
+
+        if (response.status === 500) {
+            const result = await response.json();
+            alert("Format failed");
+            setResult(`Format failed ${result.output}`);
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error();
+        }
+
+        const blob = await response.blob();
+        const zip = await JSZip.loadAsync(blob);
+
+        const extractedFiles = {};
+
+        await Promise.all(
+            Object.keys(zip.files).map(async (filename) => {
+                const file = zip.files[filename];
+                if (!file.dir) {
+                    const content = await file.async("string");
+                    const cleanPath = filename.replace(
+                        new RegExp(`^${projectId}/?`),
+                        ""
+                    );
+                    extractedFiles[cleanPath] = content;
+                }
+            })
+        );
+
+        setResult(`Format completed successfully`);
+        return buildTreeFromFiles(extractedFiles, projectId);
+    } catch (error) {
+        console.log("Format failed", error);
+        setResult(error.message);
+    }
+}
+
 export async function uploadAsZipForDB(fileTree) {
     const projectId = getProjectIdFromUrl();
 
@@ -526,4 +596,60 @@ export function findAncestorsById(tree, targetId, path = []) {
     }
 
     return [];
+}
+
+export function saveOnTabChange(
+    editorRef,
+    setActiveTabs,
+    selectedTabId,
+    fileTree,
+    setFileTree
+) {
+    const currentContent = editorRef.current.getValue();
+
+    setActiveTabs((tabs) =>
+        tabs.map((tab) =>
+            tab.id === selectedTabId
+                ? {
+                      ...tab,
+                      content: currentContent,
+                  }
+                : tab
+        )
+    );
+
+    const updateFileContent = (node) => {
+        if (!node) return null;
+        if (node.id === selectedTabId && node.type === "file") {
+            return { ...node, data: currentContent };
+        }
+        if (node.children) {
+            return {
+                ...node,
+                children: node.children.map(updateFileContent),
+            };
+        }
+        return node;
+    };
+
+    const updatedTree = updateFileContent(fileTree);
+
+    setFileTree(updatedTree);
+
+    editorRef.current.setValue(currentContent);
+    return updatedTree;
+}
+
+export function findFileById(tree, id) {
+    const traverse = (node) => {
+        if (node.id === id) return node;
+        if (node.children) {
+            for (const child of node.children) {
+                const result = traverse(child);
+                if (result) return result;
+            }
+        }
+        return null;
+    };
+    return traverse(tree);
 }
