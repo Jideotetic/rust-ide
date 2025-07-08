@@ -343,14 +343,12 @@ export async function uploadAsZipForFormatting(fileTree, setResult) {
 
         if (response.status === 400) {
             const result = await response.json();
-            alert("Format failed");
             setResult(`Format failed ${result.output}`);
             return;
         }
 
         if (response.status === 500) {
             const result = await response.json();
-            alert("Format failed");
             setResult(`Format failed ${result.output}`);
             return;
         }
