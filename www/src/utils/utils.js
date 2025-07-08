@@ -292,6 +292,7 @@ export async function uploadAsZipForBuild(fileTree) {
         alert("Build successful");
         return response.json();
     } catch (error) {
+        console.log("Build failed", error);
         console.error("Build failed", error);
         alert("Build failed...kindly try again");
     }
