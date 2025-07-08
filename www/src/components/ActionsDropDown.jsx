@@ -4,10 +4,10 @@ import { GoKebabHorizontal } from "react-icons/go";
 
 // Replace your current format button with this dropdown component
 const ActionsDropdown = ({
-    handleSaveFile,
+    handleFormat,
     handleBuild,
     handleTest,
-    saving,
+    formatting,
     building,
     handleUpload,
     testing,
@@ -45,8 +45,8 @@ const ActionsDropdown = ({
             case "build":
                 handleBuild();
                 break;
-            case "save":
-                handleSaveFile();
+            case "format":
+                handleFormat();
                 break;
             default:
                 break;
@@ -58,8 +58,8 @@ const ActionsDropdown = ({
             className="p-2 bg-green-700 text-white absolute rounded bottom-10 right-4 z-40 hover:bg-green-600 flex items-center gap-1"
             ref={dropdownRef}
         >
-            {saving ? (
-                "Saving..."
+            {formatting ? (
+                "Formatting..."
             ) : building ? (
                 "Building..."
             ) : uploading ? (
@@ -96,10 +96,10 @@ const ActionsDropdown = ({
                                 Build
                             </button>
                             <button
-                                onClick={() => handleAction("save")}
+                                onClick={() => handleAction("format")}
                                 className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
                             >
-                                Save
+                                Format
                             </button>
                         </div>
                     )}

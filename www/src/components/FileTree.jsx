@@ -14,9 +14,18 @@ function FileTree({
     selectedTabId,
     expandedFolderIds = [],
 }) {
-    const [isExpanded, setIsExpanded] = useState(
-        expandedFolderIds.includes(fileTree.id)
-    );
+    const [isManuallyToggled, setIsManuallyToggled] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    useEffect(() => {
+        if (!isManuallyToggled) {
+            setIsExpanded(expandedFolderIds.includes(fileTree.id));
+        }
+    }, [expandedFolderIds, fileTree.id, isManuallyToggled]);
+
+    const toggleExpand = () => {
+        setIsExpanded((prev) => !prev);
+        setIsManuallyToggled(true);
+    };
     const [showOptions, setShowOptions] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isCreating, setIsCreating] = useState({
@@ -126,7 +135,7 @@ function FileTree({
                 >
                     <div
                         className="flex items-center gap-1.5 flex-1"
-                        onClick={() => setIsExpanded(!isExpanded)}
+                        onClick={toggleExpand}
                     >
                         <span
                             className={`${
