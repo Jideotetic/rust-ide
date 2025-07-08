@@ -263,7 +263,7 @@ export async function zipFileTree(fileTree) {
     return zip;
 }
 
-export async function uploadAsZipForBuild(fileTree) {
+export async function uploadAsZipForBuild(fileTree, setResult) {
     const projectId = getProjectIdFromUrl();
 
     if (!projectId) {
@@ -288,13 +288,31 @@ export async function uploadAsZipForBuild(fileTree) {
             }
         );
 
-        if (!response.ok) throw new Error("Build failed");
+        if (response.status === 400) {
+            const result = await response.json();
+            alert("Build failed");
+            setResult(`Build failed ${result.output}`);
+            return;
+        }
+
+        if (response.status === 500) {
+            const result = await response.json();
+            alert("Build failed");
+            setResult(`Build failed ${result.output}`);
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error();
+        }
+
+        const result = await response.json();
         alert("Build successful");
-        return response.json();
+        setResult(`Build completed successfully ${result.output}`);
+        return result;
     } catch (error) {
         console.log("Build failed", error);
-        console.error("Build failed", error);
-        alert("Build failed...kindly try again");
+        setResult(error.message);
     }
 }
 

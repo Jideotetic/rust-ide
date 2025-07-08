@@ -42,6 +42,7 @@ export default function App() {
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [expandedFolderIds, setExpandedFolderIds] = useState([]);
+    const [result, setResult] = useState("");
     const editorRef = useRef(null);
     const { insertNode, deleteNode, updateNode } = useTree();
 
@@ -324,7 +325,7 @@ export default function App() {
     const handleBuild = useCallback(async () => {
         setBuilding(true);
         setLoading(true);
-        await uploadAsZipForBuild(fileTree);
+        await uploadAsZipForBuild(fileTree, setResult);
 
         setBuilding(false);
         setLoading(false);
@@ -364,7 +365,7 @@ export default function App() {
             <Panel
                 collapsedSize={0}
                 collapsible
-                defaultSize={30}
+                defaultSize={25}
                 minSize={0}
                 maxSize={30}
                 className="flex flex-col border-r border-r-white"
@@ -446,14 +447,22 @@ export default function App() {
                             ></Panel>
                         </PanelGroup>
                     </Panel>
-                    <PanelResizeHandle className="h-1 bg-black" />
+                    <PanelResizeHandle className="h-[0.5px] bg-white" />
                     <Panel
                         collapsedSize={0}
                         collapsible
-                        defaultSize={0}
                         minSize={0}
-                        maxSize={100}
-                    ></Panel>
+                        defaultSize={20}
+                        maxSize={30}
+                        className="flex flex-col"
+                    >
+                        <pre
+                            className="whitespace-pre-wrap text-white text-xs overflow-y-scroll p-4"
+                            style={{ minHeight: 0 }}
+                        >
+                            {result}
+                        </pre>
+                    </Panel>
                 </PanelGroup>
             </Panel>
         </PanelGroup>
