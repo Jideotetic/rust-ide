@@ -1,22 +1,33 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from "react";
 import { GoKebabHorizontal } from "react-icons/go";
+import {
+    findFileNodeById,
+    saveOnTabChange,
+    uploadAsZipForBuild,
+    uploadAsZipForFormatting,
+    uploadAsZipForTest,
+} from "../utils/utils";
 
-// Replace your current format button with this dropdown component
-const ActionsDropdown = ({
-    handleFormat,
-    handleBuild,
-    handleTest,
+export default function ActionsDropdown({
     formatting,
     building,
-    handleUpload,
     testing,
-    uploading,
-}) => {
+    setFormatting,
+    setLoading,
+    editorRef,
+    selectedTabId,
+    setActiveTabs,
+    fileTree,
+    setFileTree,
+    setResult,
+    activeTabs,
+    setBuilding,
+    setTesting,
+}) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (
@@ -33,24 +44,79 @@ const ActionsDropdown = ({
         };
     }, []);
 
-    const handleAction = (action) => {
-        setIsOpen(false);
-        switch (action) {
-            case "upload":
-                handleUpload();
-                break;
-            case "test":
-                handleTest();
-                break;
-            case "build":
-                handleBuild();
-                break;
-            case "format":
-                handleFormat();
-                break;
-            default:
-                break;
+    const handleFormat = async () => {
+        if (!editorRef.current || !selectedTabId) return;
+
+        setFormatting(true);
+        setLoading(true);
+
+        const updatedTree = saveOnTabChange(
+            editorRef,
+            setActiveTabs,
+            selectedTabId,
+            fileTree,
+            setFileTree
+        );
+
+        const formattedTree = await uploadAsZipForFormatting(
+            updatedTree,
+            setResult
+        );
+
+        if (formattedTree) {
+            setFileTree(formattedTree);
+
+            const updatedTabs = activeTabs.map((tab) => {
+                const formattedNode = findFileNodeById(formattedTree, tab.id);
+                if (formattedNode?.data) {
+                    if (tab.id === selectedTabId) {
+                        editorRef.current.setValue(formattedNode.data);
+                    }
+                    return { ...tab, content: formattedNode.data };
+                }
+                return tab;
+            });
+
+            setActiveTabs(updatedTabs);
         }
+
+        setFormatting(false);
+        setLoading(false);
+    };
+
+    const handleBuild = async () => {
+        setBuilding(true);
+        setLoading(true);
+
+        const updatedTree = saveOnTabChange(
+            editorRef,
+            setActiveTabs,
+            selectedTabId,
+            fileTree,
+            setFileTree
+        );
+        await uploadAsZipForBuild(updatedTree, setResult);
+
+        setBuilding(false);
+        setLoading(false);
+    };
+
+    const handleTest = async () => {
+        setTesting(true);
+        setLoading(true);
+
+        const updatedTree = saveOnTabChange(
+            editorRef,
+            setActiveTabs,
+            selectedTabId,
+            fileTree,
+            setFileTree
+        );
+
+        await uploadAsZipForTest(updatedTree, setResult);
+
+        setTesting(false);
+        setLoading(false);
     };
 
     return (
@@ -62,8 +128,6 @@ const ActionsDropdown = ({
                 "Formatting..."
             ) : building ? (
                 "Building..."
-            ) : uploading ? (
-                "Uploading..."
             ) : testing ? (
                 "Running test..."
             ) : (
@@ -78,25 +142,19 @@ const ActionsDropdown = ({
                     {isOpen && (
                         <div className="absolute bottom-14 right-4 bg-[#1e1e1e] shadow-lg rounded border border-gray-600 z-50 min-w-32">
                             <button
-                                onClick={() => handleAction("upload")}
-                                className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
-                            >
-                                Upload
-                            </button>
-                            <button
-                                onClick={() => handleAction("test")}
+                                onClick={handleTest}
                                 className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
                             >
                                 Test
                             </button>
                             <button
-                                onClick={() => handleAction("build")}
+                                onClick={handleBuild}
                                 className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
                             >
                                 Build
                             </button>
                             <button
-                                onClick={() => handleAction("format")}
+                                onClick={handleFormat}
                                 className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 text-sm"
                             >
                                 Format
@@ -107,6 +165,4 @@ const ActionsDropdown = ({
             )}
         </div>
     );
-};
-
-export default ActionsDropdown;
+}
