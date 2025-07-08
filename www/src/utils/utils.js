@@ -290,14 +290,12 @@ export async function uploadAsZipForBuild(fileTree, setResult) {
 
         if (response.status === 400) {
             const result = await response.json();
-            alert("Build failed");
             setResult(`Build failed ${result.output}`);
             return;
         }
 
         if (response.status === 500) {
             const result = await response.json();
-            alert("Build failed");
             setResult(`Build failed ${result.output}`);
             return;
         }
@@ -307,7 +305,6 @@ export async function uploadAsZipForBuild(fileTree, setResult) {
         }
 
         const result = await response.json();
-        alert("Build successful");
         setResult(`Build completed successfully ${result.output}`);
         return result;
     } catch (error) {
@@ -384,41 +381,7 @@ export async function uploadAsZipForFormatting(fileTree, setResult) {
     }
 }
 
-export async function uploadAsZipForDB(fileTree) {
-    const projectId = getProjectIdFromUrl();
-
-    if (!projectId) {
-        throw new Error("No project ID provided");
-    }
-
-    await populateFileTreeWithData(fileTree);
-
-    const zip = await zipFileTree(fileTree);
-    const content = await zip.generateAsync({ type: "blob" });
-
-    const rootFolderName = fileTree.name || "New Folder";
-
-    const formData = new FormData();
-    formData.append("file", content, `${rootFolderName}.zip`);
-    try {
-        const response = await fetch(
-            `${import.meta.env.VITE_BASE_URL}/api/projects/${projectId}/update`,
-            {
-                method: "POST",
-                body: formData,
-            }
-        );
-
-        if (!response.ok) throw new Error("Upload failed");
-
-        return response.json();
-    } catch (error) {
-        console.error("Upload failed", error);
-        alert("Upload failed...kindly try again");
-    }
-}
-
-export async function uploadAsZipForTest(fileTree) {
+export async function uploadAsZipForTest(fileTree, setResult) {
     const projectId = getProjectIdFromUrl();
 
     if (!projectId) {
@@ -443,12 +406,28 @@ export async function uploadAsZipForTest(fileTree) {
             }
         );
 
-        if (!response.ok) throw new Error("Test failed");
-        alert("Test successful");
-        return response.json();
+        if (response.status === 400) {
+            const result = await response.json();
+            setResult(`Tes failed ${result.output}`);
+            return;
+        }
+
+        if (response.status === 500) {
+            const result = await response.json();
+            setResult(`Test failed ${result.output}`);
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error();
+        }
+
+        const result = await response.json();
+        setResult(`Test completed successfully ${result.output}`);
+        return result;
     } catch (error) {
-        console.error("Test failed", error);
-        alert("Test failed...kindly try again");
+        console.log("Test failed", error);
+        setResult(error.message);
     }
 }
 
