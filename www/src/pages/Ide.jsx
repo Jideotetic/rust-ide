@@ -1,24 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import Entry from "../components/Entry.jsx";
-import FileTree from "../components/FileTree.jsx";
-import useTree from "../hooks/useTree.js";
 import TabButton from "../components/TabButton.jsx";
 import ActionsDropdown from "../components/ActionsDropDown.jsx";
 import {
     closeDefaultMainTab,
     downloadProjectAsZip,
-    findAncestorsById,
     findFileNodeById,
     findFilePathById,
     getProjectIdFromUrl,
     readFileAsText,
-    saveOnTabChange,
-    sortTreeByTypeAndName,
 } from "../utils/utils.js";
 import * as monaco from "monaco-editor";
 import * as vscode from "vscode";
 import { v4 as uuidv4 } from "uuid";
+import Explorer from "../components/Explorer.jsx";
 
 const MAIN_DOT_RS_ID = uuidv4();
 
@@ -42,7 +37,6 @@ export default function IDE() {
     const [expandedFolderIds, setExpandedFolderIds] = useState([]);
     const [result, setResult] = useState("");
     const editorRef = useRef(null);
-    const { insertNode, deleteNode, updateNode } = useTree();
     const fileTreeRef = useRef();
 
     useEffect(() => {
@@ -130,75 +124,6 @@ export default function IDE() {
         };
     }, []);
 
-    const handleRename = (id, newName) => {
-        setFileTree(updateNode(fileTree, id, newName));
-        setActiveTabs(
-            activeTabs.map((tab) =>
-                tab.id === id ? { ...tab, name: newName } : tab
-            )
-        );
-    };
-
-    const handleDelete = (id) => {
-        const updatedTree = deleteNode(fileTree, id);
-        setFileTree(updatedTree);
-        setActiveTabs(activeTabs.filter((tab) => tab.id !== id));
-    };
-
-    const handleAddFile = (parentId, fileName) => {
-        const newFile = {
-            id: uuidv4(),
-            type: "file",
-            name: fileName,
-            data: "",
-        };
-
-        setFileTree(insertNode(fileTree, parentId, newFile));
-    };
-
-    const handleAddFolder = (parentId, folderName) => {
-        const newFolder = {
-            id: uuidv4(),
-            type: "folder",
-            name: folderName,
-            children: [],
-        };
-
-        const updatedTree = insertNode(fileTree, parentId, newFolder);
-
-        const sortedTree = {
-            ...updatedTree,
-            children: sortTreeByTypeAndName(updatedTree.children),
-        };
-
-        setFileTree(sortedTree);
-    };
-
-    const handleCloseTab = (tabId) => {
-        if (activeTabs.length === 1) return;
-        if (editorRef.current && selectedTabId === tabId) {
-            const currentContent = editorRef.current.getValue();
-
-            setActiveTabs((tabs) =>
-                tabs.map((tab) =>
-                    tab.id === tabId ? { ...tab, content: currentContent } : tab
-                )
-            );
-        }
-
-        const updatedActiveEditorTabs = activeTabs.filter(
-            (tab) => tab.id !== tabId
-        );
-
-        setActiveTabs(updatedActiveEditorTabs);
-
-        if (activeTabs.length !== 1) {
-            setSelectedTabId(updatedActiveEditorTabs.at(-1).id);
-        } else {
-            setSelectedTabId(null);
-        }
-    };
-
     const handleActiveEditorTabs = useCallback(
         async (tabId, tabName, tabData, treeOverride = null) => {
             const currentTree = treeOverride || fileTree;
@@ -260,7 +185,7 @@ export default function IDE() {
         <PanelGroup className="h-full" direction="horizontal">
             {loading && (
                 <div className="absolute z-50 flex items-center w-full h-full justify-center bg-[#1e1e1e]/80">
-                    <div className="text-white text-2xl text-center p-4">
+                    <div className="text-white text-xl text-center p-4">
                         Loading...
                     </div>
                 </div>
@@ -273,33 +198,18 @@ export default function IDE() {
                 maxSize={30}
                 className="flex flex-col border-r border-r-white"
             >
-                <div className="px-4 pt-3 pb-2 border-b border-b-white">
-                    <h3 className="text-xs uppercase text-white">Explorer</h3>
-                </div>
-                <div className="p-2 overflow-auto h-full">
-                    {!fileTree ? (
-                        <Entry
-                            setFileTree={setFileTree}
-                            setActiveTabs={setActiveTabs}
-                            selectedTabId={selectedTabId}
-                            setSelectedTabId={setSelectedTabId}
-                            handleActiveEditorTabs={handleActiveEditorTabs}
-                            MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
-                            setExpandedFolderIds={setExpandedFolderIds}
-                        />
-                    ) : (
-                        <FileTree
-                            handleDelete={handleDelete}
-                            handleAddFile={handleAddFile}
-                            handleAddFolder={handleAddFolder}
-                            handleRename={handleRename}
-                            fileTree={fileTree}
-                            selectedTabId={selectedTabId}
-                            handleActiveEditorTabs={handleActiveEditorTabs}
-                            expandedFolderIds={expandedFolderIds}
-                        />
-                    )}
-                </div>
+                <Explorer
+                    setFileTree={setFileTree}
+                    fileTree={fileTree}
+                    setActiveTabs={setActiveTabs}
+                    activeTabs={activeTabs}
+                    selectedTabId={selectedTabId}
+                    setSelectedTabId={setSelectedTabId}
+                    handleActiveEditorTabs={handleActiveEditorTabs}
+                    MAIN_DOT_RS_ID={MAIN_DOT_RS_ID}
+                    setExpandedFolderIds={setExpandedFolderIds}
+                    expandedFolderIds={expandedFolderIds}
+                />
             </Panel>
             <PanelResizeHandle className="w-[0.1px] bg-white" />
             <Panel>
@@ -312,29 +222,19 @@ export default function IDE() {
                                         <TabButton
                                             key={tab.id}
                                             tab={tab}
-                                            handleCloseTab={handleCloseTab}
+                                            activeTabs={activeTabs}
+                                            editorRef={editorRef}
+                                            selectedTabId={selectedTabId}
+                                            setActiveTabs={setActiveTabs}
+                                            setSelectedTabId={setSelectedTabId}
                                             isSelected={
                                                 tab.id === selectedTabId
                                             }
-                                            onClick={() => {
-                                                saveOnTabChange(
-                                                    editorRef,
-                                                    setActiveTabs,
-                                                    selectedTabId,
-                                                    fileTree,
-                                                    setFileTree
-                                                );
-                                                setSelectedTabId(tab.id);
-                                                const ancestorIds =
-                                                    findAncestorsById(
-                                                        fileTree,
-                                                        tab.id
-                                                    );
-
-                                                setExpandedFolderIds(
-                                                    ancestorIds
-                                                );
-                                            }}
+                                            fileTree={fileTree}
+                                            setFileTree={setFileTree}
+                                            setExpandedFolderIds={
+                                                setExpandedFolderIds
+                                            }
                                         />
                                     ))}
                                 </div>
