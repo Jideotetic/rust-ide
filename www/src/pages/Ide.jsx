@@ -5,12 +5,10 @@ import ActionsDropdown from "../components/ActionsDropDown.jsx";
 import {
     closeDefaultMainTab,
     downloadProjectAsZip,
-    findAncestorsById,
     findFileNodeById,
     findFilePathById,
     getProjectIdFromUrl,
     readFileAsText,
-    saveOnTabChange,
 } from "../utils/utils.js";
 import * as monaco from "monaco-editor";
 import * as vscode from "vscode";
@@ -39,7 +37,6 @@ export default function IDE() {
     const [expandedFolderIds, setExpandedFolderIds] = useState([]);
     const [result, setResult] = useState("");
     const editorRef = useRef(null);
-
     const fileTreeRef = useRef();
 
     useEffect(() => {
@@ -127,31 +124,6 @@ export default function IDE() {
         };
     }, []);
 
-    const handleCloseTab = (tabId) => {
-        if (activeTabs.length === 1) return;
-        if (editorRef.current && selectedTabId === tabId) {
-            const currentContent = editorRef.current.getValue();
-
-            setActiveTabs((tabs) =>
-                tabs.map((tab) =>
-                    tab.id === tabId ? { ...tab, content: currentContent } : tab
-                )
-            );
-        }
-
-        const updatedActiveEditorTabs = activeTabs.filter(
-            (tab) => tab.id !== tabId
-        );
-
-        setActiveTabs(updatedActiveEditorTabs);
-
-        if (activeTabs.length !== 1) {
-            setSelectedTabId(updatedActiveEditorTabs.at(-1).id);
-        } else {
-            setSelectedTabId(null);
-        }
-    };
-
     const handleActiveEditorTabs = useCallback(
         async (tabId, tabName, tabData, treeOverride = null) => {
             const currentTree = treeOverride || fileTree;
@@ -213,7 +185,7 @@ export default function IDE() {
         <PanelGroup className="h-full" direction="horizontal">
             {loading && (
                 <div className="absolute z-50 flex items-center w-full h-full justify-center bg-[#1e1e1e]/80">
-                    <div className="text-white text-2xl text-center p-4">
+                    <div className="text-white text-xl text-center p-4">
                         Loading...
                     </div>
                 </div>
@@ -250,29 +222,19 @@ export default function IDE() {
                                         <TabButton
                                             key={tab.id}
                                             tab={tab}
-                                            handleCloseTab={handleCloseTab}
+                                            activeTabs={activeTabs}
+                                            editorRef={editorRef}
+                                            selectedTabId={selectedTabId}
+                                            setActiveTabs={setActiveTabs}
+                                            setSelectedTabId={setSelectedTabId}
                                             isSelected={
                                                 tab.id === selectedTabId
                                             }
-                                            onClick={() => {
-                                                saveOnTabChange(
-                                                    editorRef,
-                                                    setActiveTabs,
-                                                    selectedTabId,
-                                                    fileTree,
-                                                    setFileTree
-                                                );
-                                                setSelectedTabId(tab.id);
-                                                const ancestorIds =
-                                                    findAncestorsById(
-                                                        fileTree,
-                                                        tab.id
-                                                    );
-
-                                                setExpandedFolderIds(
-                                                    ancestorIds
-                                                );
-                                            }}
+                                            fileTree={fileTree}
+                                            setFileTree={setFileTree}
+                                            setExpandedFolderIds={
+                                                setExpandedFolderIds
+                                            }
                                         />
                                     ))}
                                 </div>
